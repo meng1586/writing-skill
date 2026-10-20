@@ -91,7 +91,7 @@ def build(tags, book):
     picked = []
     for dim in DIMENSIONS:
         for r in all_rules.get(dim, []):
-            if r["status"].startswith("已淘汰"):
+            if r["status"] in ("已淘汰", "暂不采用", "dropped", "rejected", "retired"):
                 continue
             if is_match(r["tags"], tags):
                 picked.append((dim, r))

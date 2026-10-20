@@ -14,7 +14,7 @@
       "book_id": "7143038691944959011",
       "status": "reading",
       "added": "2026-10-20",
-      "chapters_done": 1360,
+      "chapters_done": 1370,
       "chapter_total": 1496,
       "local_dir": ".cache/novel-study/books/fanqie-7143038691944959011",
       "tags": [
@@ -848,6 +848,12 @@
           "chapters": 10,
           "minutes": 45,
           "note": "读完 1351-1360 章（正文终章）"
+        },
+        {
+          "date": "2026-10-21",
+          "chapters": 10,
+          "minutes": 25,
+          "note": "读完 1361-1370 章（甜甜番外上半）"
         }
       ],
       "last_studied": "2026-10-21",

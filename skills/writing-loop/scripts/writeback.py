@@ -54,7 +54,7 @@ VERDICT_ALIASES = {
     "meh": "一般", "soso": "一般", "so-so": "一般", "一般": "一般",
     "bad": "崩", "broken": "崩", "崩": "崩",
 }
-VALID_STATUS = {"untested", "conditional", "dropped", "no-diff"}
+VALID_STATUS = {"untested", "tried", "conditional", "dropped", "no-diff"}
 
 
 class WritebackError(Exception):
@@ -172,6 +172,10 @@ def cmd_add(args):
         ("effect", args.effect.strip()),
         ("verdict", verdict),
     ])
+    if getattr(args, "compared", ""):
+        record["compared"] = args.compared
+    if getattr(args, "condition", "") and args.condition.strip():
+        record["condition"] = args.condition.strip()
     if args.note and args.note.strip():
         record["note"] = args.note.strip()
 
@@ -196,11 +200,14 @@ def aggregate(records, decisions_by_id):
                 "id": did,
                 "uses": 0,
                 "verdicts": Counter(),
+                "compared": Counter(),
                 "chapters": [],
                 "last_ts": "",
             })
             item["uses"] += 1
             item["verdicts"][verdict] += 1
+            if str(rec.get("compared", "")).lower() in ("yes", "是", "true", "1"):
+                item["compared"][verdict] += 1
             chapter = rec.get("chapter", "")
             if chapter and chapter not in item["chapters"]:
                 item["chapters"].append(chapter)
@@ -214,7 +221,7 @@ def aggregate(records, decisions_by_id):
         decision = decisions_by_id.get(did)
         current = (decision or {}).get("status", "derived")
         # 决策库里没有这条（多半是 ID 写错）：不给建议，apply 也会跳过
-        suggestion = suggest_status(item["verdicts"], current) if decision else None
+        suggestion = suggest_status(item.get("compared", Counter()), current, item["uses"] > 0) if decision else None
         rows.append({
             "id": did,
             "title": (decision or {}).get("title", ""),
@@ -228,19 +235,18 @@ def aggregate(records, decisions_by_id):
     return rows
 
 
-def suggest_status(counts, current):
-    """v2 四态：崩≥2 且多于好 → dropped；好≥2 且多于崩 → conditional；
-    有记录但样本不足 → no-diff；无记录保持。次数只作参考，不作判决。"""
-    good = counts.get("好", 0)
-    bad = counts.get("崩", 0)
-    total = sum(counts.values())
-    if bad >= 2 and bad > good:
-        return "dropped"
-    if good >= 2 and good > bad:
+def suggest_status(compared_counts, current, any_use=True):
+    """状态只由「做过对照试写」的记录决定；没做对照的只算 tried。
+    次数只汇总，不作判决。没有对照就没有 conditional/dropped/no-diff。"""
+    good = compared_counts.get("好", 0)
+    bad = compared_counts.get("崩", 0)
+    if good + bad == 0:
+        return "tried" if any_use else (current or "untested")
+    if good > bad:
         return "conditional"
-    if total >= 1:
-        return "no-diff"
-    return current or "untested"
+    if bad > good:
+        return "dropped"
+    return "no-diff"
 
 
 def cmd_report(args):
@@ -383,6 +389,10 @@ def build_parser():
                        help="实际效果，写具体的：哪里好、哪里过了、读者什么反应")
     p_add.add_argument("--verdict", required=True, metavar="好|一般|崩",
                        help="这条决策在这章的效果：好 / 一般 / 崩")
+    p_add.add_argument("--compared", choices=("yes", "no"), default="", metavar="yes|no",
+                       help="是否做过对照试写；只有 yes 才会改变状态")
+    p_add.add_argument("--condition", default="", metavar="有效条件",
+                       help="如：人物想维持镇定、视角允许身体感受")
     p_add.add_argument("--note", default="", metavar="备注",
                        help="可选：下次怎么调整")
     p_add.set_defaults(func=cmd_add)

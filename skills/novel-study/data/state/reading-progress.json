@@ -2,7 +2,7 @@
   "book_key": "fanqie-7143038691944959011",
   "book_name": "十日终焉",
   "total_chapters": 1496,
-  "last_read_chapter": 1360,
+  "last_read_chapter": 1380,
   "unit_size": 10,
   "units_done": [
     {
@@ -956,8 +956,22 @@
         1360
       ],
       "note": "十日终焉-第1351-1360章.md"
+    },
+    {
+      "range": [
+        1361,
+        1370
+      ],
+      "note": "十日终焉-第1361-1370章.md"
+    },
+    {
+      "range": [
+        1371,
+        1380
+      ],
+      "note": "十日终焉-第1371-1380章.md"
     }
   ],
   "prefetch_ready_until": 1000,
-  "updated": "2026-10-21T01:15:00+02:00"
+  "updated": "2026-10-21T01:24:56+02:00"
 }

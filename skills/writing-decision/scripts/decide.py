@@ -290,13 +290,22 @@ def render_text(data, query, picked, n_direct, n_fallback):
 
     combo = find_combo(data, {r["decision"]["id"] for r in picked}, scene)
     if combo:
-        order = [x for x in combo["order"] if x in {r["decision"]["id"] for r in picked}]
+        picked_ids = {r["decision"]["id"] for r in picked}
+        active_ids = {d["id"] for d in data["decisions"] if d.get("status") not in ("dropped", "rejected", "retired")}
+        order = [x for x in combo["order"] if x in picked_ids and x in active_ids]
         out.append("——— 这一场怎么串 ———")
         out.append(f"[{combo['name']}] 命中 {len(order)}/{len(combo['order'])}")
         out.append("顺序：" + " → ".join(order))
         out.append(combo["note"])
         out.append("")
     out.append("下一步：把命中的条目贴进这一章的细纲/场景卡，按顺序落笔；写完回看「崩法」逐条对照。")
+    out.append("")
+    out.append("## 落笔前先过三道前提（不满足就别用）")
+    out.append("1. 这场戏要什么效果？同样的「第一次杀人」，要「想镇定但失控」才适合写手抖；要「异常平静、被自己吓到」就不适合。")
+    out.append("2. 人物此刻什么状态？有同伴 / 独自在场 / 多年后回忆，写法不同。")
+    out.append("3. 什么视角？限知能写身体感受，全知写不了。")
+    out.append("")
+    out.append("三条有一条对不上 → 这条决策可能不适用，允许全部不用。检索给的是候选，不是命令。")
     return "\n".join(out)
 
 

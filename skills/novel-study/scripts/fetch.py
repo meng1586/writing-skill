@@ -46,7 +46,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SKILL_DIR = os.path.dirname(HERE)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(SKILL_DIR))
 
-DEFAULT_OUTDIR = os.path.join(PROJECT_ROOT, ".cache", "novel-study", "books")
+DEFAULT_OUTDIR = os.environ.get("NOVEL_STUDY_CACHE") or os.path.join(PROJECT_ROOT, ".cache", "novel-study", "books")
 FONT_DIR = os.path.join(PROJECT_ROOT, ".cache", "novel-study", "fonts")
 
 UA_PC = (

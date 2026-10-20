@@ -66,6 +66,7 @@ install() {
     <key>NOVEL_STUDY_ROOT</key><string>$APPLY_DIR</string>
     <key>NOVEL_STUDY_STATE</key><string>$APPLY_DIR/state</string>
     <key>NOVEL_STUDY_SYNC_SHELF</key><string>$SKILL_DIR/data/shelf.json</string>
+    <key>NOVEL_STUDY_CACHE</key><string>$APPLY_DIR/cache/books</string>
   </dict>
   <key>StartCalendarInterval</key>
   <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>
