@@ -54,7 +54,7 @@ VERDICT_ALIASES = {
     "meh": "一般", "soso": "一般", "so-so": "一般", "一般": "一般",
     "bad": "崩", "broken": "崩", "崩": "崩",
 }
-VALID_STATUS = {"derived", "verified", "rejected"}
+VALID_STATUS = {"untested", "conditional", "dropped", "no-diff"}
 
 
 class WritebackError(Exception):
@@ -229,17 +229,18 @@ def aggregate(records, decisions_by_id):
 
 
 def suggest_status(counts, current):
-    """崩≥2 → rejected；好>崩 → verified；其余不回退已有状态。"""
+    """v2 四态：崩≥2 且多于好 → dropped；好≥2 且多于崩 → conditional；
+    有记录但样本不足 → no-diff；无记录保持。次数只作参考，不作判决。"""
     good = counts.get("好", 0)
     bad = counts.get("崩", 0)
     total = sum(counts.values())
-    if bad >= 2:
-        return "rejected"
-    if total >= 1 and good > bad:
-        return "verified"
-    if current in ("verified", "rejected"):
-        return current
-    return "derived"
+    if bad >= 2 and bad > good:
+        return "dropped"
+    if good >= 2 and good > bad:
+        return "conditional"
+    if total >= 1:
+        return "no-diff"
+    return current or "untested"
 
 
 def cmd_report(args):

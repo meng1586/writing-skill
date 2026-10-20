@@ -79,7 +79,7 @@ python3 $SKILL_DIR/scripts/shelf.py judge --key fanqie-7143038691944959011 \
 写正文前跑一次，把读过的规则按当前题材筛出来：
 
 ```bash
-python3 $SKILL_DIR/scripts/apply.py --tags 玄幻,悬疑 --book 我的书
+python3 $SKILL_DIR/scripts/apply.py --tags 玄幻,悬疑 --book 命烛
 # 产物：06-素材/写作/备忘/{日期}-{标签}.md
 ```
 

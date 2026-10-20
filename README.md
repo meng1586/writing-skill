@@ -61,7 +61,7 @@ python3 skills/writing-loop/scripts/index.py find --scene 托孤
 python3 skills/writing-loop/scripts/style.py check --file 你的章节.md --target <目标书>
 
 # 回填
-python3 skills/writing-loop/scripts/writeback.py add --chapter "第1章" --used D-014 --effect "..." --status 待试验
+python3 skills/writing-loop/scripts/writeback.py add --chapter "第1章" --used D-014 --effect "..." --verdict 一般
 ```
 
 ## 状态

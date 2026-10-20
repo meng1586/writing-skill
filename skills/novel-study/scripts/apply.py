@@ -45,7 +45,7 @@ def parse_rules(path):
     """把一个维度文件拆成规则列表。"""
     with open(path, encoding="utf-8") as f:
         text = f.read()
-    parts = re.split(r"(?m)^## (R-[^\n]+)$", text)
+    parts = re.split(r"(?m)^#{2,3} (R-[^\n]+)$", text)
     rules = []
     for i in range(1, len(parts) - 1, 2):
         title = parts[i].strip()

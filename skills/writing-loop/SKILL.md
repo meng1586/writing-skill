@@ -1,3 +1,9 @@
+---
+name: writing-loop
+version: 0.1.0
+description: "写作闭环编排：写完一章后的索引查询、文风体检、读者/挑刺代理、决策回填。把 novel-study 读出来的技法、writing-decision 的判断、scene-modules 的施工图串成一条流水线。触发方式：/writing-loop、/写作闭环、「写完了帮我体检」「派个读者看看」「用了哪条决策」。"
+---
+
 # writing-loop：写作闭环
 
 > 把「读到的技法」变成「写作时能调用的判断」，再把「写完的效果」回填成证据。
@@ -52,7 +58,7 @@ python3 skills/scene-modules/scripts/query.py --type 打脸
 ### ⑤ 体检
 ```bash
 python3 skills/writing-loop/scripts/style.py profile --book 十日终焉 --chapters 1-50
-python3 skills/writing-loop/scripts/style.py check --file 我的书/正文/第001章.md --target 十日终焉
+python3 skills/writing-loop/scripts/style.py check --file 命烛/正文/第001章_开火.md --target 十日终焉
 ```
 输出 9 项指标对比，差距 >25% 的会标出来，并给人话判断。
 
@@ -65,7 +71,7 @@ python3 skills/writing-loop/scripts/style.py check --file 我的书/正文/第00
 ### ⑧ 回填
 ```bash
 python3 skills/writing-loop/scripts/writeback.py add \
-  --chapter "我的书第1章" --used D-014,D-003 \
+  --chapter "命烛第1章" --used D-014,D-003 \
   --effect "手抖写了两处，第二处偏长" --verdict 一般
 
 python3 skills/writing-loop/scripts/writeback.py report
@@ -103,5 +109,5 @@ python3 skills/writing-loop/scripts/writeback.py apply
 - 索引和文风档案都依赖「真读过」。没读过的书不要往索引里塞假条目。
 - `writeback.py apply` 会改 `decisions.json`，先 `--dry-run`。
 - 读者代理和挑刺代理都要**只给正文**，否则它们会开始分析结构。
-- **文风体检要选对目标作者**：我的书如果是黑暗残酷玄幻，拿《十日终焉》（无限流悬疑）当目标是会测出「句子短 35%」的——那不是写坏了，是题材不同。要么先给目标书按题材建档，要么只比较「同题材」的书。
+- **文风体检要选对目标作者**：命烛是黑暗残酷玄幻，拿《十日终焉》（无限流悬疑）当目标是会测出「句子短 35%」的——那不是写坏了，是题材不同。要么先给目标书按题材建档，要么只比较「同题材」的书。
 - 文风体检的 9 项指标没有绝对好坏，只有「像不像目标」。差距大不等于要改，只等于「你离目标有多远」。

@@ -62,6 +62,7 @@ def cmd_new(args):
         print(f"错误：书架里没有 {args.key}", file=sys.stderr)
         return 2
     name = book.get("name") or args.key
+    os.makedirs(NOTES, exist_ok=True)
     path = os.path.join(NOTES, f"{name}-总评.md")
     if os.path.exists(path) and not args.force:
         print(f"已存在：{path}（加 --force 覆盖）")

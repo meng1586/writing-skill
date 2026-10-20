@@ -133,6 +133,9 @@ def select(data, tags, scene, position, dimension, limit):
     concepts = build_concepts(data, scene)
     rows = []
     for i, d in enumerate(data["decisions"]):
+        # v2：淘汰/暂不采用的决策不再推荐
+        if d.get("status") in ("dropped", "rejected", "retired"):
+            continue
         if dimension and d["dimension"] != dimension:
             continue
         r = score_one(d, concepts, tags, position)
@@ -189,9 +192,13 @@ def select(data, tags, scene, position, dimension, limit):
     return picked, len(direct), len(fallback)
 
 
-def find_combo(data, picked_ids):
+def find_combo(data, picked_ids, scene=""):
+    """只有场景命中 combo 的 triggers 时才返回，避免「章末没钩子」被解谜局冒领。"""
     best, best_hit = None, 0
     for combo in data.get("combos", []):
+        trig = combo.get("triggers") or []
+        if trig and not any(t in (scene or "") for t in trig):
+            continue
         hit = [x for x in combo["order"] if x in picked_ids]
         if len(hit) > best_hit:
             best, best_hit = combo, len(hit)
@@ -230,8 +237,8 @@ def fmt_case(case):
 def render_match(r, idx):
     d = r["decision"]
     lines = []
-    status_label = {"derived": "推演规则，待写作验证", "retired": "已淘汰"}
-    flag = "" if d.get("status") == "verified" else f"（{status_label.get(d.get('status'), d.get('status'))}）"
+    status_label = {"untested": "待试验", "no-diff": "看不出区别", "dropped": "暂不采用", "conditional": "有条件有用"}
+    flag = "" if d.get("status") == "conditional" else f"（{status_label.get(d.get('status'), d.get('status'))}）"
     lines.append(f"{idx}) {d['id']} [{d['dimension']}] {d['title']}{flag}")
     lines.append(f"   匹配：{match_line(r)}")
     when = d["trigger"].get("when", "")
@@ -281,7 +288,7 @@ def render_text(data, query, picked, n_direct, n_fallback):
         out.append(render_match(r, i))
         out.append("")
 
-    combo = find_combo(data, {r["decision"]["id"] for r in picked})
+    combo = find_combo(data, {r["decision"]["id"] for r in picked}, scene)
     if combo:
         order = [x for x in combo["order"] if x in {r["decision"]["id"] for r in picked}]
         out.append("——— 这一场怎么串 ———")
@@ -298,7 +305,7 @@ def render_list(data, dimension):
     for d in data["decisions"]:
         groups.setdefault(d["dimension"], []).append(d)
     total = sum(len(v) for v in groups.values())
-    verified = sum(1 for d in data["decisions"] if d.get("status") == "verified")
+    verified = sum(1 for d in data["decisions"] if d.get("status") == "conditional")
     if dimension:
         n = len(groups.get(dimension, []))
         out = [f"写作决策树 · {dimension} · {n} 条", ""]
@@ -317,7 +324,7 @@ def render_list(data, dimension):
             trig = d["trigger"]
             scenes = " / ".join(trig.get("scenes", [])[:4]) or "—"
             genres = "、".join(trig.get("genres", [])) or "—"
-            flag = "" if d.get("status") == "verified" else "  [推演，待验证]"
+            flag = "" if d.get("status") == "conditional" else "  [推演，待验证]"
             out.append(f"  {d['id']}  {d['title']}{flag}")
             out.append(f"        触发：{scenes}｜题材：{genres}")
         out.append("")
@@ -402,7 +409,7 @@ def main():
     picked, n_direct, n_fallback = select(data, tags, scene, position, dimension, limit)
 
     if args.json:
-        combo = find_combo(data, {r["decision"]["id"] for r in picked})
+        combo = find_combo(data, {r["decision"]["id"] for r in picked}, scene)
         out = {
             "query": {"tags": tags, "scene": scene, "position": position,
                       "dimension": dimension, "limit": limit},

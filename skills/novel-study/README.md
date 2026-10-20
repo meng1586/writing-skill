@@ -26,7 +26,7 @@ python3 skills/novel-study/scripts/shelf.py judge --key fanqie-71430386919449590
   --quality 5 --verdict keep --verdict-reason "数字矛盾开局可偷"
 
 # 4) 写正文前，把读过的规则翻出来
-python3 skills/novel-study/scripts/apply.py --tags 玄幻,悬疑 --book 我的书
+python3 skills/novel-study/scripts/apply.py --tags 玄幻,悬疑 --book 命烛
 ```
 
 ## 目录

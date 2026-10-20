@@ -89,5 +89,11 @@ case "$cmd" in
   --status) status ;;
   --uninstall) uninstall ;;
   --yes) install ;;
-  *) echo "预览（加 --yes 才真正安装）："; echo; install; echo; echo "（这是预览，未写入。）" ;;
+  *)
+    echo "预览（加 --yes 才真正安装）："
+    echo "  会复制 $SKILL_DIR/scripts/study_daemon.sh -> $APPLY_DIR/scripts/"
+    echo "  会复制 $SKILL_DIR/scripts/fetch.py        -> $APPLY_DIR/scripts/（如存在）"
+    echo "  会复制 $SKILL_DIR/data/shelf.json         -> $APPLY_DIR/data/"
+    echo "  会写 $PLIST"
+    echo "（这是预览，未写入。）" ;;
 esac

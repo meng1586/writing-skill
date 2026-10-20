@@ -141,7 +141,7 @@ python3 scripts/fetch.py book   --source tianxi --book-id 94098167 --from 1 --to
 ## apply.py（lead 负责）
 
 ```bash
-python3 scripts/apply.py --tags 玄幻,悬疑 [--book 我的书] [--json] [--no-write]
+python3 scripts/apply.py --tags 玄幻,悬疑 [--book 命烛] [--json] [--no-write]
 ```
 
 - 从 `data/rules/{维度}.md` 按「适用题材」筛规则（「通用」也匹配；「通用，除 X」排除 X）。
