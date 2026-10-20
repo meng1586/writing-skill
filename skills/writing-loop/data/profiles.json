@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "profiles": {
+    "十日终焉": {
+      "book": "十日终焉",
+      "author": "杀虫队队员",
+      "book_dir": "fanqie-7143038691944959011",
+      "book_id": "7143038691944959011",
+      "chapters": "1-50",
+      "chapter_count": 48,
+      "skipped_chapters": [
+        12,
+        13
+      ],
+      "missing_chapters": [],
+      "dataless_chapters": [],
+      "generated_at": "2026-10-21T00:16:31+02:00",
+      "tool": "style.py 1.0",
+      "metrics": {
+        "hanzi_count": 89907,
+        "sentence_count": 4745,
+        "paragraph_count": 3223,
+        "dialogue_paragraph_count": 1720,
+        "punct_counts": {
+          "question": 968,
+          "exclaim": 420,
+          "ellipsis": 620,
+          "dash": 8
+        },
+        "avg_sentence_len": 18.95,
+        "median_sentence_len": 17.0,
+        "short_sentence_ratio": 19.79,
+        "long_sentence_ratio": 21.2,
+        "dialogue_ratio": 53.37,
+        "para_avg_len": 27.9,
+        "q_per_1k": 10.77,
+        "ex_per_1k": 4.67,
+        "ellipsis_per_1k": 6.9,
+        "dash_per_1k": 0.09
+      }
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "daily_chapters": 3,
+  "time_budget_min": 40,
+  "max_chapters_per_run": 20,
+  "preferred_platforms": [
+    "fanqie",
+    "qidian"
+  ],
+  "allowed_sources": [
+    "fanqie",
+    "tianxi"
+  ],
+  "source_priority": [
+    "fanqie",
+    "tianxi"
+  ],
+  "request_delay_sec": [
+    0.8,
+    1.5
+  ],
+  "max_retries": 3,
+  "genre_focus": [],
+  "note_sync_dirs": {
+    "notes": "06-素材/读/笔记",
+    "rules": "06-素材/读/规则"
+  },
+  "login": {
+    "mode": "browser_qr",
+    "note": "扫码登录态只存在浏览器 profile 里；本技能不存任何明文账号密码"
+  },
+  "schedule": {
+    "collect_hint": "每天 09:00 由 launchd 预热抓取（只抓数据，不理解）",
+    "study_hint": "每天 21:00 由会话定时提醒 agent 执行拆解与沉淀"
+  }
+}
