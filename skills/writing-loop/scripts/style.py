@@ -414,48 +414,23 @@ REL_TOL = 25.0       # 相对差阈值（%）
 
 
 def human_comment(key: str, draft: float, target: float, direction: int, rel: float, delta: float) -> str:
-    """给一项差距配一句人话。direction: 1 你偏大，-1 你偏小。"""
-    pct = f"{abs(rel):.0f}%"
-    abs_d = f"{abs(delta):.1f}"
-    if key in DENSITY_KEYS and target < DENSITY_ZERO:
-        # 目标密度本来就极低，百分比会吓人，只报绝对增量
-        flavor = {
-            "dash_per_1k": "句子被打断得有点多",
-            "ex_per_1k": "情绪外放得比目标吵",
-            "ellipsis_per_1k": "停顿多了，人物说话变虚",
-            "q_per_1k": "追问感比目标重",
-        }[key]
-        return f"目标几乎不用这个标点，你却有 {draft:.2f}‰，{flavor}"
-    if target <= ZERO_TARGET_TOL:
-        return f"目标几乎为零，你却有 {draft:.2f}"
-
-    if direction > 0:
-        table = {
-            "avg_sentence_len": f"你的句子比目标长 {pct}，读起来会更闷、更拖",
-            "median_sentence_len": f"你的中位句长比目标长 {pct}，长句是常态而不是点缀",
-            "short_sentence_ratio": f"≤5 字短句比目标多 {abs_d} 个百分点，碎句敲得勤，节奏更急",
-            "long_sentence_ratio": f"≥30 字长句比目标多 {abs_d} 个百分点，长句压场，手机上容易读滑",
-            "dialogue_ratio": f"对话段比目标多 {abs_d} 个百分点，更热闹，但也可能显得碎嘴",
-            "para_avg_len": f"段落比目标长 {pct}，手机上是一整坨字，眼睛更累",
-            "q_per_1k": f"问号密度比目标高 {pct}，追问感更重，也可能显得急躁",
-            "ex_per_1k": f"感叹号比目标多 {pct}，情绪外放，容易吵",
-            "ellipsis_per_1k": f"省略号比目标多 {pct}，停顿多，人物说话更虚",
-            "dash_per_1k": f"破折号比目标多 {pct}，插入语多，句子老被打断",
-        }
-    else:
-        table = {
-            "avg_sentence_len": f"你的句子比目标短 {pct}，读起来更碎、更赶",
-            "median_sentence_len": f"你的中位句长比目标短 {pct}，几乎没有喘气的长句",
-            "short_sentence_ratio": f"≤5 字短句比目标少 {abs_d} 个百分点，节奏起伏会变平",
-            "long_sentence_ratio": f"≥30 字长句比目标少 {abs_d} 个百分点，铺陈和压迫感不够",
-            "dialogue_ratio": f"对话段比目标少 {abs_d} 个百分点，叙事更闷、独白感更重",
-            "para_avg_len": f"段落比目标短 {pct}，一行一行翻得快，但可能不够沉",
-            "q_per_1k": f"问号密度比目标低 {pct}，交锋和悬念被压住了",
-            "ex_per_1k": f"感叹号比目标少 {pct}，高潮可能不够响",
-            "ellipsis_per_1k": f"省略号比目标少 {pct}，人物说话太干脆，缺犹豫",
-            "dash_per_1k": f"破折号比目标少 {pct}，叙述更直，少了插话感",
-        }
-    return table[key]
+    """统计只定位待核对之处，不由分布推断阅读效果。"""
+    side = "高于" if direction > 0 else "低于"
+    difference = (f"{abs(delta):.2f}‰" if key in DENSITY_KEYS and target < DENSITY_ZERO
+                  else f"{abs(rel):.0f}%" if target > ZERO_TARGET_TOL else f"{abs(delta):.2f}")
+    checks = {
+        "avg_sentence_len": "可核对长短句安排是否符合本场叙述目的",
+        "median_sentence_len": "可核对典型句子与特殊长短句各承担什么作用",
+        "short_sentence_ratio": "可核对短句出现的位置及其信息是否完整",
+        "long_sentence_ratio": "可核对长句的信息组织和具体可读性",
+        "dialogue_ratio": "可核对对话是否符合人物、信息与关系需要",
+        "para_avg_len": "可核对实际阅读版式与段落的信息组织",
+        "q_per_1k": "可逐处核对问句是否符合人物与场景",
+        "ex_per_1k": "可逐处核对感叹号是否符合当前语气",
+        "ellipsis_per_1k": "可逐处核对停顿是否有语境依据",
+        "dash_per_1k": "可逐处核对插入、转折或打断是否清楚",
+    }
+    return f"统计值{side}目标 {difference}；{checks[key]}，差异本身不要求修改"
 
 
 def compare(draft: dict, target: dict) -> list[dict]:
@@ -580,7 +555,7 @@ def render_check(draft_info: dict, target_name: str, target_entry: dict,
         for r in flagged:
             lines.append(f"  ⚠ {r['label']}：{r['comment']}")
     else:
-        lines.append(f" ── 十项全部在 ±{REL_TOL:.0f}% 以内，文风很贴 ──")
+        lines.append(" ── 十项统计均在当前差异阈值内 ──")
 
     lines.append("")
     lines.append(f" 一句话：{summarize(flagged)}")
@@ -589,7 +564,7 @@ def render_check(draft_info: dict, target_name: str, target_entry: dict,
 
 def summarize(flagged: list[dict]) -> str:
     if not flagged:
-        return "十项都在目标区间里，可以直接往下写；剩下的是句子本身好不好看。"
+        return "十项统计在比较区间内；这不判断人物、结构、情绪效果或整体文风。"
     ranked = sorted(
         flagged,
         key=lambda r: abs(r["rel_pct"]) if r["target"] > ZERO_TARGET_TOL else 100.0,
@@ -603,8 +578,7 @@ def summarize(flagged: list[dict]) -> str:
         else:
             detail = gap_text(r)
         parts.append(f"{short} {detail}")
-    tail = "，先改这两项再谈味道。" if len(flagged) > 2 else "，改完再看一遍。"
-    return "、".join(parts) + " 差得最多" + tail
+    return "、".join(parts) + " 的统计差异最大；按场景目的核对相关段落，无需为对齐数值改稿。"
 
 
 # ---------------------------------------------------------------------------

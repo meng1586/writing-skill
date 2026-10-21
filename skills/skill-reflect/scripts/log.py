@@ -96,6 +96,8 @@ def parse_args(argv=None):
     )
     parser.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR), help="记录目录（默认 data/usage）")
     parser.add_argument("--ts", default=None, help="补录时间，ISO 8601（默认现在）")
+    parser.add_argument("--skill-version", default="", help="本次使用的 skill 版本或提交引用")
+    parser.add_argument("--use-id", default="", help="一次真实使用的标识；同问题同次使用重复记录只计一次")
     parser.add_argument("--dry-run", action="store_true", help="只打印将写入的内容，不落盘")
     parser.add_argument("--json", action="store_true", help="输出机器可读 JSON")
     return parser.parse_args(argv)
@@ -133,6 +135,10 @@ def main(argv=None) -> int:
     files = [f.strip() for f in (args.files or []) if f and f.strip()]
     if files:
         record["files"] = files
+    for name in ("skill_version", "use_id"):
+        value = getattr(args, name).strip()
+        if value:
+            record[name] = value
 
     data_dir = Path(args.data_dir).expanduser()
     path = data_dir / f"{skill}-{dt.date().isoformat()}.jsonl"

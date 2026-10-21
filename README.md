@@ -1,80 +1,54 @@
 # 写作学习系统（writing-skill）
 
-> 一套让 AI 通过读书学会写小说的工作流。实验性质，方法论优先。
+从阅读中提出候选写法、按具体场景试用、再记录反馈的实验性工作流。能生成笔记和检索案例，不等于已经证明写作效果更好。
 
-## 这是什么
+先读[系统总览](写作系统-总览.md)，方法依据见[写作方法论 v2](写作方法论-v2.md)。[v1](写作方法论.md)仅作历史记录。
 
-不是「AI 代写工具」，是一套**让 AI 自己读书、拆出手法、写作时调用、写完回填**的流程。
-核心信念：
+## 五个部分
 
-> **读过的才敢用，用过的才敢信。**
-
-## 包含什么
-
-| 目录 | 作用 |
+| 目录 | 职责 |
 |---|---|
-| `写作方法论.md` / `写作方法论-v2.md` | 方法论 v1 / 吸收外部评审后的 v2（推荐读 v2） |
-| `写作系统-总览.md` | 四个 skill 的协作方式 |
-| `skills/novel-study/` | 读书：选书→抓章→三层阅读→笔记→规则 |
-| `skills/writing-decision/` | 决策树：这场戏该用什么手法（24 条 if-then） |
-| `skills/scene-modules/` | 场景卡：打脸/告别/托孤等 12 个模块的施工图 |
-| `skills/writing-loop/` | 闭环：索引、文风体检、回填、读者/挑刺代理 |
-| `skills/skill-reflect/` | 元工具：记录 skill 痛点，攒证据改进 |
+| `skills/novel-study/` | 选书、采集、阅读、新笔记和候选办法 |
+| `skills/writing-decision/` | 按事件、题材和位置检索，再结合目标、人物和视角选择 |
+| `skills/scene-modules/` | 写前、写中、写后按需查路径与风险 |
+| `skills/writing-loop/` | 案例索引、描述性文风统计、分来源评审和反馈 |
+| `skills/skill-reflect/` | 记录实际使用的问题与改进证据 |
 
-## 核心方法论（v2）
+在仓库根目录工作并保留上述同级布局。具体运行要求和采集限制见 [novel-study](skills/novel-study/SKILL.md)。安装不会自动采集、安装定时器或写小说。
 
-### 三层分离
-观察不能直接升级成规则：
-- **原文事实**：作者在这里这样写了（可核对）
-- **效果解释**：我推测这样产生了某种效果（待核实）
-- **写作假设**：在条件 X 下这样写可能有效（待试验）
+## 三项方法入口
 
-### 三层阅读
-先当读者（只写感受，禁止分析词），再当拆解者（回答「作者怎么做到的」），最后当作者（能落笔的 3 条动作）。
+- [情绪方法](skills/novel-study/data/rules/情绪.md)：表达问题 → 背景条件下的选择 → 技法案例。建议明确且可调整，不按情绪名称绑定固定写法。
+- [卷纲模板](skills/novel-study/references/卷纲模板.md)：等待／选择与代价／局面变化／本卷回应与下卷承接。倒计时和通用节拍只是可选工具。
+- [场景卡调用](skills/scene-modules/SKILL.md)：写前缺方案、写中卡住、写后有疑问时各取所需；未采用某个五步写法不构成写坏。
 
-### 批评与总评
-- 每个单元至少一处批评：好书也有烂的地方
-- 每本书结束时必须写总评（读完/中断/弃都要），「烂在哪」不能空
+更新只对未写单元向后生效。已完成笔记和正式副本不重写、不重置进度。案例曾出现过与照用有效是两种结论。
 
-### 验证
-不靠「数次数」，靠状态机 + 对照试写：
-- 状态：待试验 / 在某些条件下有帮助 / 暂不采用 / **看不出区别**
-- 方法：同一场景写两版（用/不用该技法），隐藏身份让人比较
+## 证据边界
 
-### 成本
-粗筛用便宜模型，精读用贵模型，纯统计用脚本。按需读：先建索引，写某类场景只读那几章。
+原文事实、效果解释和写作假设分开；作者自检、模型模拟和真人反馈分开。对照应关联稿件版本、反馈来源与适用条件，状态不由“好/崩”的票数决定。
 
-## 快速开始
+检索分数是关键词相关性，文风数值只描述与样本的差异，都不直接决定质量。没有匹配材料时可以继续写并注明未测，不为凑规则改人物或剧情。
+
+## 快速试用
 
 ```bash
-# 读书
-python3 skills/novel-study/scripts/fetch.py book --source fanqie --book-id <id> --from 1 --to 10
-python3 skills/novel-study/scripts/plan.py
-
-# 写作前判断
-python3 skills/writing-decision/scripts/decide.py --tags 玄幻 --scene "主角第一次杀人"
-
-# 查料
-python3 skills/writing-loop/scripts/index.py find --scene 托孤
-
-# 写后体检
-python3 skills/writing-loop/scripts/style.py check --file 你的章节.md --target <目标书>
-
-# 回填
-python3 skills/writing-loop/scripts/writeback.py add --chapter "第1章" --used D-014 --effect "..." --verdict 一般
+python3 -B skills/novel-study/scripts/plan.py --json
+python3 -B skills/writing-decision/scripts/decide.py --tags 玄幻 --scene "主角第一次杀人"
+python3 -B skills/scene-modules/scripts/query.py --type 告别
+python3 -B skills/writing-loop/scripts/index.py find --scene 托孤
+python3 -B skills/writing-loop/scripts/writeback.py report
 ```
 
-## 状态
+样本索引与候选数据来自已有阅读记录；完整参考小说、私人笔记、账号凭据和私人写作项目不在仓库内。不能因查到索引就声称已读原文。
 
-- 实验性。方法论已经过一轮外部评审（GPT）并修订。
-- 尚未完成「对照试写」验证：不知道用了这套方法，写出来的东西是否真的更好。
-- 示例数据来自《十日终焉》（仅少量摘引用于学习分析）。
+## 验证
 
-## 不包含
+```bash
+python3 -B -m unittest discover -s tests -v
+```
 
-- 不包含任何平台的账号凭据
-- 不包含完整的小说文本
-- 不包含私人写作项目
+回归检查覆盖状态、证据、组合排除和跨模块格式等可观察行为，不验证真实读者情绪、作品质量或平台追读。方法仍待实际写作和真人反馈检验。
 
 ## 许可
 

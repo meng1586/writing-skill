@@ -23,6 +23,13 @@ from pathlib import Path
 
 DEFAULT_DIR = Path(__file__).resolve().parent.parent / "data" / "modules"
 MAX_HITS_PER_MODULE = 6
+USAGE_NOTE = (
+    "卡片是未经效果验证的候选路径。写前缺方案、写中卡住或写后有具体疑问时按需调用；"
+    "先复核本场目标、人物状态和视角，再选相关动作或反例。"
+    "本场可以确认、加深、维持或改变判断，不要求每场都改判。"
+    "下文保留原卡正文，五步、该用/别用和自检项均须结合语境判断；"
+    "未套五步或未用指定手法不构成写坏的证据，30秒自检不是真实读者情绪验证。"
+)
 
 # 列表展示顺序：按「一场戏从起手到收尾」的常见调用顺序排，新模块追加在末尾。
 PREFERRED_ORDER = [
@@ -105,13 +112,14 @@ def cmd_list(modules, as_json: bool) -> int:
     if as_json:
         print(json.dumps(
             {"query": "list", "count": len(modules),
-             "modules": [m.meta() for m in modules]},
+             "usage_note": USAGE_NOTE, "modules": [m.meta() for m in modules]},
             ensure_ascii=False, indent=2))
         return 0
     if not modules:
         print("[scene-modules] 还没有卡片。")
         return 0
     width = max(len(m.type) for m in modules)
+    print(USAGE_NOTE + "\n")
     print(f"共 {len(modules)} 个场景模块（卡片目录：{modules[0].path.parent}）\n")
     for m in modules:
         aliases = f"  （别名：{'、'.join(m.aliases)}）" if m.aliases else ""
@@ -131,9 +139,11 @@ def cmd_type(modules, term: str, as_json: bool) -> int:
             item["content"] = m.content
             data.append(item)
         print(json.dumps(
-            {"query": "type", "term": term, "count": len(data), "modules": data},
+            {"query": "type", "term": term, "count": len(data),
+             "usage_note": USAGE_NOTE, "modules": data},
             ensure_ascii=False, indent=2))
         return 0
+    print(USAGE_NOTE + "\n")
     if len(matched) > 1:
         print(f"> 模糊匹配到 {len(matched)} 张卡片：{'、'.join(m.type for m in matched)}\n")
     for idx, m in enumerate(matched):
@@ -156,11 +166,13 @@ def cmd_search(modules, term: str, as_json: bool) -> int:
     if as_json:
         print(json.dumps(
             {"query": "search", "term": term, "count": len(results),
+             "usage_note": USAGE_NOTE,
              "matches": [
                  dict(m.meta(), hits=hits) for m, hits in results
              ]},
             ensure_ascii=False, indent=2))
         return 0
+    print(USAGE_NOTE + "\n")
     print(f"「{term}」命中 {len(results)} 个模块：\n")
     for m, hits in results:
         print(f"【{m.type}】{m.summary}")
@@ -173,7 +185,7 @@ def cmd_search(modules, term: str, as_json: bool) -> int:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="query.py",
-        description="查询场景模块卡片（打脸、告别、谈判……写作前直接调）。",
+        description="按需查询场景模块候选（写前缺方案、写中卡住、写后有疑问）。",
         epilog="示例：python3 scripts/query.py --type 打脸",
     )
     group = parser.add_mutually_exclusive_group()

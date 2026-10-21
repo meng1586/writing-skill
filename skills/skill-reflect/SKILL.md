@@ -1,8 +1,7 @@
 ---
 name: skill-reflect
-version: 0.1.0
 description: "Skill 自我改进：记录每次「哪里不好用」，同类问题攒到 3 条证据就升级为待改，输出带证据的改进报告（问题排行/建议改动/受影响文件），最后据此改 SKILL.md。触发：记录 skill 问题 / 看看 skill 哪里不好用 / skill 改进 / 这个 skill 卡在哪 / 记一笔。"
-metadata: {"local": true, "project": "写点小说"}
+metadata: {"local": true, "project": "写点小说", "version": "0.1.0"}
 ---
 
 # skill-reflect：让 skill 自己变好
@@ -14,8 +13,8 @@ metadata: {"local": true, "project": "写点小说"}
 
 三条原则：
 
-1. **先记录，后改**：用得不顺就记一条，不改流程；证据不够不动刀。
-2. **同类 ≥3 条才算「待改」**：一次不爽可能是偶然，三次就是设计问题。
+1. **先记录，后判断**：使用感受先留下依据，不凭一次不顺就扩改流程；已明确的实现错误可直接核验修复。
+2. **同版本同类 ≥3 次使用可列为「待改」**：这是安排复核的默认阈值，不证明根因；已明确的实现错误可直接修复。
 3. **改完留痕**：改了什么、为什么、证据是哪几条，写进本文件末尾的「改进记录」。
 
 ## 触发词
@@ -28,9 +27,9 @@ metadata: {"local": true, "project": "写点小说"}
 
 ## 30 秒上手
 
-```bash
-cd /Users/meng/Desktop/deepseek相关/写点小说
+在当前克隆仓库根目录执行以下命令，不切换到原作者的工作区。
 
+```bash
 # 1) 用得不顺，记一条（只追加，不改任何 skill 文件）
 python3 skills/skill-reflect/scripts/log.py \
     --skill novel-study --stage 笔记 \
@@ -59,6 +58,8 @@ python3 skills/skill-reflect/scripts/report.py
 | `suggestion` | 否 | 建议怎么改，一句能落地的话 |
 | `impact` | 是 | `high` / `medium` / `low` |
 | `files` | 否 | 受影响文件数组；不填时报告按 `stage` 推断 |
+| `skill_version` | 否 | 使用的版本或提交引用；旧记录保留为空，与新版本分别汇总 |
+| `use_id` | 否 | 一次真实使用的标识，同版本同问题同次使用只计一次 |
 
 **记录粒度**：一次使用最多记 1–2 条，只记真实卡点（耗时、返工、token 超预期、输出没法直接用）。
 同一件事拆成 5 条刷阈值，等于骗自己。
@@ -86,6 +87,8 @@ python3 skills/skill-reflect/scripts/log.py \
 | `--dry-run` | 只打印，不落盘 |
 | `--json` | 机器可读输出 |
 | `--data-dir` | 换记录目录（自测/归档用） |
+| `--skill-version` | 使用的版本或提交引用 |
+| `--use-id` | 一次真实使用的标识，用于防止重复计数 |
 
 ### report.py — 聚合报告
 
@@ -107,9 +110,10 @@ python3 skills/skill-reflect/scripts/report.py --out .cache/skill-reflect/report
 
 聚合规则：
 
-- 同一 `skill` 下，`issue` 先归一化（去空白/首尾标点、ASCII 小写），再套少量同义词表
+- 同一 `skill`、同一版本下，`issue` 先归一化（去空白/首尾标点、ASCII 小写），再套少量同义词表
   （`太慢`→`慢`、`贵`/`太贵`→`token 太贵`、`内容重复`→`重复太多`）。
 - 同类 `issue` 证据 ≥ 阈值 → **待改**；否则 **观察中**。
+- 有 use_id 时同次使用不重复计数。未标版本的历史记录单独分组，不为补字段重写旧日志。修复前后的证据分别看；无新增日志也可能只是没有继续使用，不能单凭停止增长宣布修好。
 - 排序：待改优先 → 证据条数 → high 影响数 → 最近一次出现时间。
 - 坏行（JSON 错、缺字段、时间非法）跳过并在报告末尾列出，不影响其他记录。
 
@@ -153,7 +157,7 @@ python3 skills/skill-reflect/scripts/report.py --out .cache/skill-reflect/report
 3. **保留证据**：日志不删不改，改完还能回看当时为什么改。
 4. **跑一次该 skill 的现有命令**（如 `plan.py --json`），确认没把流程改坏。
 5. **留痕**：在本文件「改进记录」加一行——日期、skill、证据条数、改了什么、怎么验证的。
-6. **继续记录**：改进后同类问题还在增加，说明改错了或没改到根上；不再增加才叫修好。
+6. **继续记录**：改进后记录新版本的真实使用和问题，再核对原问题是否仍出现；无继续使用或无人记录时，不能判断已经修好。
 
 **不自动改文件**：`report.py` 只出报告，不写 `SKILL.md`。改不改、怎么改由主人和主会话定——
 自动改自己的指令很容易越改越偏。
@@ -163,9 +167,9 @@ python3 skills/skill-reflect/scripts/report.py --out .cache/skill-reflect/report
 `read-cycle` 是 novel-study 的「子代理读书手册」，管**怎么读一个单元**；skill-reflect 是跨 skill 的
 **元技能**，管**用完怎么把卡点沉淀成改进**。两者不重叠，也不改同一批文件。
 
-- **子代理不记录、不改文件**：`references/read-cycle.md` 的「禁止」写明子代理不许改 `SKILL.md`、
-  脚本、模板。子代理只在最后一行返回里带一句观察（如「本单元笔记偏长」），
-  **记录动作由主会话用 `log.py` 完成**。
+- **子代理按读书授权写阅读产物，不改技能实现**：依照 `read-cycle.md` 写本次新笔记、必要的前情补充，
+  通过 `shelf.py log` 记录实际读完范围并按规则同步；不在读书任务中改 `SKILL.md`、脚本或模板。
+  返回可带一句使用卡点，**skill-reflect 的日志由主会话用 `log.py` 记录**。
 - **读前情/写笔记的卡点**，主会话在单元结束后记一条：
 
   ```bash
@@ -173,11 +177,12 @@ python3 skills/skill-reflect/scripts/report.py --out .cache/skill-reflect/report
       --issue "重复太多" --suggestion "0 节只在第一篇写" --impact high
   ```
 
-- **数据不交叉**：read-cycle 写 `data/notes/`、`data/state/reading-progress.json`；
-  skill-reflect 只写 `skills/skill-reflect/data/usage/`。日志是证据，不是笔记。
-- **改 read-cycle 要走阈值**：连续 3 个单元都卡在同一个环节，才把 `read-cycle.md` 列为待改；
-  只卡一次就先记着。改 read-cycle 属于改进 novel-study，仍然由主会话改、在改进记录里留痕。
-- **顺序**：read-cycle 跑完 → 返回一行 → 主会话判断值不值得记 → `log.py` → 攒够 → `report.py` → 改。
+- **进度与反思分开**：阅读进度以 `skills/novel-study/data/shelf.json` 的所选书 `chapters_done` 为准；
+  历史 `data/state/reading-progress.json` 不再作为新书进度来源，也不自动迁移或重写。
+  skill-reflect 日志只写 `skills/skill-reflect/data/usage/`，不代替笔记或阅读进度。
+- **改 read-cycle 的判断**：同版本多次真实使用出现同类卡点时，报告可提高复核优先级；
+  已明确的错误不必等满三次。改动由主会话按当前授权执行并留痕，不由读书子代理顺手修改。
+- **顺序**：read-cycle 跑完 → 返回结果 → 主会话按需记日志 → 报告复核 → 按授权改进并检查新版本。
 
 ## 目录
 

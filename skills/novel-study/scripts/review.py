@@ -82,7 +82,7 @@ def cmd_new(args):
     with open(path, "w", encoding="utf-8") as f:
         f.write(tpl)
     print(f"已生成总评骨架：{path}")
-    print("下一步：把 2/3 节（好在哪、烂在哪）填满，烂在哪不能空。")
+    print("下一步：记录有文本依据的优点与问题；未发现或未覆盖可如实写，不为填满凑数。")
     return 0
 
 

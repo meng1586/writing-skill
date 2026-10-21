@@ -145,17 +145,25 @@ python3 scripts/apply.py --tags 玄幻,悬疑 [--book 命烛] [--json] [--no-wri
 ```
 
 - 从 `data/rules/{维度}.md` 按「适用题材」筛规则（「通用」也匹配；「通用，除 X」排除 X）。
-- 输出到 `06-素材/写作/备忘/{日期}-{标签}.md`，内容 = 匹配规则 + 文风卡列表 + 写作前自检。
-- 被 `- 状态：已淘汰` 标记的规则跳过。
+- 接受 `##/### R-维度-编号 标题` 和 `##/### C-编号 标题`；遍历实际维度文件，新增维度不改白名单。卡片式标题格式错误时报错，不静默漏卡。
+- 输出到 `06-素材/写作/备忘/{日期}-{标签}.md`，内容 = 按条件选择的候选技法/案例 + 文风卡列表 + 写作前提问；没有匹配不阻止写作。
+- JSON 每条保留 `title/body/tags/status/original_status/kind/source/conditions/source_path`，不丢出处、条件与状态。
+- 旧「可用/待验证」入库标签在调用时按「待试验」显示，同时保留原标签；不据此声称效果验证。已淘汰、暂不采用及其旧英文停用状态跳过。
 
 ## plan.py（lead 负责）
 
 ```bash
-python3 scripts/plan.py [--json]   # 生成「今天学什么」清单：今日书目、下一批章节号、笔记待补清单
+python3 skills/novel-study/scripts/plan.py [--book-key source-id] [--chapters 10] [--json]
 ```
+
+- 以 `shelf.json` 按书目记录的 `chapters_done` 计算范围；已完成书目不生成反向范围，也不阻挡下一本。
+- 单元阅读必须明确传 `--book-key`，`selected_book.key` 与 `today[].book_key` 均对应这一本；项内给出独立 `source/book_id`、`last_read_chapter/from/to/chapter_total/local_dir`。
+- 找不到指定书目或书目已停止阅读时报错；不悄悄改选。指定已完成书目时 `today` 为空，保留 `selected_book` 供说明原因。
+- `data/state/reading-progress.json` 保留为历史单书资料，不参与另一书的排程，不自动迁移或覆盖。
 
 ## 笔记与规则（curator 定义格式，本鲸填内容）
 
-- 笔记：`data/notes/{书名}.md`，按 `references/note-template.md` 的**三层阅读法**（读者层不许用分析词）。
-- 规则：`data/rules/{维度}.md`，按 `references/rules-guide.md`；每条规则必须带「出处：《书名》第N章」和「反例/正例」。
-- 同步：`scripts/plan.py --sync` 把 `data/notes/*`、`data/rules/*` 复制到 `06-素材/读书笔记/`、`06-素材/写作规则库/`。
+- 笔记：`data/notes/{书名}/第A-B章.md`，按 `references/note-template.md` 的三层阅读法。新方法只对未写单元生效，不回填旧笔记。
+- 候选技法及案例：`data/rules/{维度}.md`，按 `references/rules-guide.md` 区分原文事实、效果解释和写作假设；不足处标未覆盖，不编造。
+- 同步：`scripts/plan.py --sync` 把新笔记、规则复制到 `06-素材/读/笔记/`、`06-素材/读/规则/`。已存在正式笔记若内容不同，先报冲突并停止整轮复制，不覆盖；相同则跳过。当前前情提要可随阅读更新，不作为旧单元笔记重写。
+- 宏观判断入口：`references/卷纲模板.md`，按自然转折使用承诺、选择与代价、局面变化、回应与承接，不凑节点数量。

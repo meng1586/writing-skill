@@ -1,38 +1,11 @@
 #!/usr/bin/env python3
-"""writeback.py — 写完回填：这一章用了哪条决策，效果如何
+"""记录使用与反馈；有可追溯的真人对照证据，才形成带条件的效果状态。
 
-写作决策库里的规则分两种状态：
-  verified — 已经在正文里用过，效果站得住
-  derived  — 从别人的书/笔记里推演出来，还没在自己笔下试过
+普通使用、作者自检、模型评审以及旧日志都保留为试用记录，不按好坏票数
+判定效果。真人对照须注明两版引用、反馈引用、适用条件、明确比较结果，
+并由记录者 --confirm-result 确认；这不证明普遍有效。
 
-每写完一章，把「用了哪条、效果如何」记一行；攒几章后跑 apply，
-决策库就能从「推演」变成「验证」：真的好用升 verified，崩过两次的降 rejected。
-
-用法：
-  # 记一条：第 1 章用了 D-014，效果好
-  python3 scripts/writeback.py add --chapter "命烛第1章" --used D-014 \
-      --effect "手抖只写一处，读者说记住了" --verdict 好
-
-  # 一次用了几条，可以逗号分隔，也可以重复 --used
-  python3 scripts/writeback.py add --chapter "命烛第2章" --used D-014,D-003 \
-      --effect "两条挤在一章，手抖和擦手重复了" --verdict 一般 \
-      --note "下一章拆开用"
-
-  # 看聚合：每条决策被用几次，好/一般/崩怎么分布
-  python3 scripts/writeback.py report
-  python3 scripts/writeback.py report --json
-
-  # 回填到 decisions.json（先 dry-run 看会动哪几条）
-  python3 scripts/writeback.py apply --dry-run
-  python3 scripts/writeback.py apply
-
-判定规则（apply）：
-  崩 ≥ 2 次              → rejected
-  好 > 崩，且至少用过 1 次 → verified
-  其余                   → 不回退已有 verified/rejected；derived 仍是 derived
-
-只依赖标准库。回填记录默认写 ../data/writebacks.jsonl（一行一条，只追加），
-apply 默认改 ../../writing-decision/data/decisions.json。
+记录只追加；apply 先 --dry-run。自测可用 --writebacks/--decisions 指向临时文件。
 """
 import argparse
 import json
@@ -55,6 +28,10 @@ VERDICT_ALIASES = {
     "bad": "崩", "broken": "崩", "崩": "崩",
 }
 VALID_STATUS = {"untested", "tried", "conditional", "dropped", "no-diff"}
+VALID_STATUS.add("retired")
+LEGACY_STATUS = {"derived": "untested", "verified": "untested", "rejected": "dropped"}
+EFFECT_STATUS = {"conditional", "dropped", "no-diff", "retired"}
+COMPARISON_RESULTS = {"better": "conditional", "worse": "dropped", "no-diff": "no-diff"}
 
 
 class WritebackError(Exception):
@@ -120,8 +97,9 @@ def load_writebacks(path):
                 rec = json.loads(line)
             except json.JSONDecodeError as exc:
                 raise WritebackError(f"{path} 第 {lineno} 行不是合法 JSON：{exc}")
-            if not isinstance(rec, dict) or not rec.get("used"):
-                raise WritebackError(f"{path} 第 {lineno} 行缺 used 字段")
+            if (not isinstance(rec, dict) or not isinstance(rec.get("used"), list)
+                    or not rec["used"] or any(not isinstance(i, str) or not i.strip() for i in rec["used"])):
+                raise WritebackError(f"{path} 第 {lineno} 行 used 必须是非空决策 ID 数组")
             records.append(rec)
     return records
 
@@ -176,6 +154,13 @@ def cmd_add(args):
         record["compared"] = args.compared
     if getattr(args, "condition", "") and args.condition.strip():
         record["condition"] = args.condition.strip()
+    record["reviewer_type"] = args.reviewer_type
+    for field in ("draft_a_ref", "draft_b_ref", "feedback_ref", "comparison_result"):
+        value = getattr(args, field, "")
+        if value and value.strip():
+            record[field] = value.strip()
+    if args.confirm_result:
+        record["result_confirmed"] = True
     if args.note and args.note.strip():
         record["note"] = args.note.strip()
 
@@ -187,7 +172,31 @@ def cmd_add(args):
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     print(f"已回填：{record['chapter']} · {'、'.join(used)} · {verdict}")
+    if not qualified_evidence(record):
+        print("作为使用/自检记录保留；不据此升级效果状态，也不阻塞继续写作。")
     print(f"记录：{path}")
+
+
+def canonical_status(status):
+    return LEGACY_STATUS.get(status, status if status in VALID_STATUS else "untested")
+
+
+def qualified_evidence(record):
+    """证据引用由记录者核实；未声明来源的旧记录不默认为真人反馈。"""
+    refs = ("draft_a_ref", "draft_b_ref", "feedback_ref", "condition")
+    return (record.get("reviewer_type") == "reader"
+            and record.get("result_confirmed") is True
+            and record.get("comparison_result") in COMPARISON_RESULTS
+            and all(isinstance(record.get(k), str) and record[k].strip() for k in refs)
+            and record["draft_a_ref"].strip() != record["draft_b_ref"].strip()
+            and len(set(record.get("used", []))) == 1)
+
+
+def evidence_summary(record):
+    return {k: record.get(k, "") for k in (
+        "ts", "chapter", "reviewer_type", "result_confirmed", "condition", "comparison_result",
+        "draft_a_ref", "draft_b_ref", "feedback_ref"
+    )}
 
 
 def aggregate(records, decisions_by_id):
@@ -200,14 +209,16 @@ def aggregate(records, decisions_by_id):
                 "id": did,
                 "uses": 0,
                 "verdicts": Counter(),
-                "compared": Counter(),
+                "evidence": [],
                 "chapters": [],
                 "last_ts": "",
             })
             item["uses"] += 1
             item["verdicts"][verdict] += 1
-            if str(rec.get("compared", "")).lower() in ("yes", "是", "true", "1"):
-                item["compared"][verdict] += 1
+            if qualified_evidence(rec):
+                summary = evidence_summary(rec)
+                if summary not in item["evidence"]:
+                    item["evidence"].append(summary)
             chapter = rec.get("chapter", "")
             if chapter and chapter not in item["chapters"]:
                 item["chapters"].append(chapter)
@@ -219,9 +230,13 @@ def aggregate(records, decisions_by_id):
     for did in sorted(agg):
         item = agg[did]
         decision = decisions_by_id.get(did)
-        current = (decision or {}).get("status", "derived")
+        current = canonical_status((decision or {}).get("status", "untested"))
+        existing = (decision or {}).get("effect_evidence", [])
+        evidence = [e for e in existing if isinstance(e, dict) and e.get("comparison_result") in COMPARISON_RESULTS]
+        evidence += [e for e in item["evidence"] if e not in evidence]
         # 决策库里没有这条（多半是 ID 写错）：不给建议，apply 也会跳过
-        suggestion = suggest_status(item.get("compared", Counter()), current, item["uses"] > 0) if decision else None
+        suggestion = suggest_status(evidence, current, item["uses"] > 0) if decision else None
+        mixed = len({e["comparison_result"] for e in evidence}) > 1
         rows.append({
             "id": did,
             "title": (decision or {}).get("title", ""),
@@ -231,22 +246,24 @@ def aggregate(records, decisions_by_id):
             "last_ts": item["last_ts"],
             "current": current if decision else "未知",
             "suggestion": suggestion,
+            "effect_evidence": evidence,
+            "effect_review_required": mixed,
         })
     return rows
 
 
-def suggest_status(compared_counts, current, any_use=True):
-    """状态只由「做过对照试写」的记录决定；没做对照的只算 tried。
-    次数只汇总，不作判决。没有对照就没有 conditional/dropped/no-diff。"""
-    good = compared_counts.get("好", 0)
-    bad = compared_counts.get("崩", 0)
-    if good + bad == 0:
-        return "tried" if any_use else (current or "untested")
-    if good > bad:
-        return "conditional"
-    if bad > good:
-        return "dropped"
-    return "no-diff"
+def suggest_status(evidence, current, any_use=True):
+    current = canonical_status(current)
+    # 退役需要显式的单独处置，普通使用或新一条好评不得复活它。
+    if current == "retired":
+        return current
+    results = {e["comparison_result"] for e in evidence}
+    if len(results) == 1:
+        return COMPARISON_RESULTS[next(iter(results))]
+    # 相反结果需要看适用条件，不等于同一对照没有区别。
+    if current in EFFECT_STATUS:
+        return current
+    return "tried" if any_use else current
 
 
 def cmd_report(args):
@@ -271,7 +288,7 @@ def cmd_report(args):
     if not rows:
         print(f"还没有回填记录（{args.writebacks}）。")
         print("写完一章后这样记：")
-        print('  python3 scripts/writeback.py add --chapter "命烛第1章" \\')
+        print('  python3 skills/writing-loop/scripts/writeback.py add --chapter "命烛第1章" \\')
         print('      --used D-014 --effect "手抖只写一处" --verdict 好')
         return
 
@@ -289,6 +306,9 @@ def cmd_report(args):
     print()
     for row in table:
         print("".join(pad(cell, widths[i]) for i, cell in enumerate(row)).rstrip())
+    for row in rows:
+        if row["effect_review_required"]:
+            print(f"{row['id']}：真人对照结果不一致，保留各条件，需复核；不抵消为无差异。")
 
     pending = [r for r in rows if r["suggestion"] and r["suggestion"] != r["current"]]
     print()
@@ -297,7 +317,7 @@ def cmd_report(args):
         for r in pending:
             print(f"  {r['id']}  {r['current']} → {r['suggestion']}"
                   f"（好 {r['verdicts']['好']} / 崩 {r['verdicts']['崩']}）")
-        print("确认后跑：python3 scripts/writeback.py apply")
+        print("确认后跑：python3 skills/writing-loop/scripts/writeback.py apply")
     else:
         print("没有需要改 status 的决策（回填还不够，或已经是最新）。")
     print()
@@ -323,23 +343,35 @@ def cmd_apply(args):
             print(f"跳过 {row['id']}：决策库里没有这条（可能是 ID 写错）",
                   file=sys.stderr)
             continue
-        old = decision.get("status", "derived")
+        old = decision.get("status", "untested")
         new = row["suggestion"]
-        if new != old:
-            changes.append((row["id"], old, new, row))
+        updated = dict(decision, status=new)
+        if old in LEGACY_STATUS:
+            updated.setdefault("legacy_status", old)
+        if row["effect_evidence"] and old != "retired":
+            existing = decision.get("effect_evidence", [])
+            evidence = existing + [e for e in row["effect_evidence"] if e not in existing]
+            updated["effect_evidence"] = evidence
+            # 已保存的证据也参与冲突检查，防分批日志抹掉旧结论。
+            results = {e.get("comparison_result") for e in evidence}
+            updated["effect_review_required"] = len(results) > 1
+            if len(results) > 1:
+                updated["status"] = canonical_status(old) if canonical_status(old) in EFFECT_STATUS else "tried"
+        if updated != decision:
+            changes.append((row["id"], old, updated, row))
 
     if not changes:
         print("回填已生效，没有需要改的 status。")
         return
 
     print(f"{'[dry-run] ' if args.dry_run else ''}准备更新 {len(changes)} 条决策：")
-    for did, old, new, row in changes:
-        print(f"  {did}  {old} → {new}"
+    for did, old, updated, row in changes:
+        print(f"  {did}  {old} → {updated['status']}"
               f"（用了 {row['uses']} 次：好 {row['verdicts']['好']} / "
               f"一般 {row['verdicts']['一般']} / 崩 {row['verdicts']['崩']}）")
         if args.dry_run:
             continue
-        decisions_by_id[did]["status"] = new
+        decisions_by_id[did].update(updated)
 
     if args.dry_run:
         print("dry-run：没有写入。去掉 --dry-run 才会改 decisions.json。")
@@ -365,11 +397,11 @@ def build_parser():
         description="写完回填：记录每章用了哪条写作决策、效果如何，再把结果回填到决策库。",
         epilog=(
             "示例：\n"
-            "  writeback.py add --chapter \"命烛第1章\" --used D-014 "
+            "  python3 skills/writing-loop/scripts/writeback.py add --chapter \"命烛第1章\" --used D-014 "
             "--effect \"手抖太长了\" --verdict 一般\n"
-            "  writeback.py report --json\n"
-            "  writeback.py apply --dry-run\n"
-            "  writeback.py apply\n"
+            "  python3 skills/writing-loop/scripts/writeback.py report --json\n"
+            "  python3 skills/writing-loop/scripts/writeback.py apply --dry-run\n"
+            "  python3 skills/writing-loop/scripts/writeback.py apply\n"
             "\n自测时可加 --writebacks/--decisions 指向临时副本，不动正式数据。"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -390,9 +422,18 @@ def build_parser():
     p_add.add_argument("--verdict", required=True, metavar="好|一般|崩",
                        help="这条决策在这章的效果：好 / 一般 / 崩")
     p_add.add_argument("--compared", choices=("yes", "no"), default="", metavar="yes|no",
-                       help="是否做过对照试写；只有 yes 才会改变状态")
+                       help="兼容旧记录的对照标记；单独 yes 不构成效果证据")
     p_add.add_argument("--condition", default="", metavar="有效条件",
                        help="如：人物想维持镇定、视角允许身体感受")
+    p_add.add_argument("--reviewer-type", choices=("usage", "author", "model", "reader"), default="usage",
+                       help="普通使用（默认）/ 作者自检 / 模型评审 / 真人读者；模型代理不能标 reader")
+    p_add.add_argument("--draft-a-ref", default="", help="对照 A 稿的路径及版本或提交引用")
+    p_add.add_argument("--draft-b-ref", default="", help="对照 B 稿的路径及版本或提交引用")
+    p_add.add_argument("--feedback-ref", default="", help="真人反馈原话及具体位置的保存引用")
+    p_add.add_argument("--comparison-result", choices=tuple(COMPARISON_RESULTS), default="",
+                       help="本条技法在 B 相对 A 的明确结果：better / worse / no-diff")
+    p_add.add_argument("--confirm-result", action="store_true",
+                       help="记录者已核对上述版本、真人反馈、条件和对照结果；只适用于单条决策")
     p_add.add_argument("--note", default="", metavar="备注",
                        help="可选：下次怎么调整")
     p_add.set_defaults(func=cmd_add)
@@ -409,8 +450,8 @@ def build_parser():
         "apply", parents=[common],
         help="把聚合结果回填到 decisions.json 的 status",
         description=(
-            "按回填结果改决策状态：崩≥2 次 → rejected；好>崩 → verified；"
-            "其余不降级，derived 仍是 derived。"
+            "普通使用仅记 tried；有完整且明确确认的真人对照证据才更新带条件的效果状态。"
+            "相反结果保留条件并标需复核；retired 不自动复活。"
         ),
     )
     p_apply.add_argument("--dry-run", action="store_true",

@@ -1,113 +1,88 @@
 ---
 name: writing-loop
-version: 0.1.0
-description: "写作闭环编排：写完一章后的索引查询、文风体检、读者/挑刺代理、决策回填。把 novel-study 读出来的技法、writing-decision 的判断、scene-modules 的施工图串成一条流水线。触发方式：/writing-loop、/写作闭环、「写完了帮我体检」「派个读者看看」「用了哪条决策」。"
+description: "写作闭环：按需查技法和场景出处、统计文风差异、组织模型审阅与真人反馈，记录试用和有条件的对照结果。适用于写后检查、局部改稿和反馈回填；没有实测不阻塞原创写作。"
+metadata: {"version": "0.2.0"}
 ---
 
 # writing-loop：写作闭环
 
-> 把「读到的技法」变成「写作时能调用的判断」，再把「写完的效果」回填成证据。
-> 它是 novel-study / writing-decision / scene-modules 的**编排层**，不重复造轮子。
+按当前问题选择需要的环节，不必每章跑完整流程：
 
-## 一条流水线
+1. 构思或卡住时，可查 writing-decision 与 scene-modules 的候选技法、适用条件、出处和风险。
+2. 需要对照原例时，用 `scripts/index.py find --scene 场景` 查出处；查不到可继续原创，不能编造原文依据。
+3. 写完后按需做文风统计、模型审阅或真人试读。已写前文是阅读语境，后续大纲和作者预设答案不是读者材料。
+4. 用 `scripts/writeback.py` 留下使用、修改与反馈记录；效果结论取决于证据类型，不取决于用了几次。
 
-```
-① 判断    decide.py     这场戏该用什么手法（24 条决策 + 组合顺序）
-② 查料    index.py      这个手法哪本书第几章写过（场景索引）
-③ 施工    scene-modules 这个场景怎么搭、什么时候会崩（12 张卡）
-④ 写      你/agent 动笔
-⑤ 体检    style.py      句长/对话/标点像不像目标作者
-⑥ 读者    reader-prompts 派读者代理：只想不想追下一章
-⑦ 挑刺    reader-prompts 派挑刺代理：找逻辑漏洞和设定冲突
-⑧ 回填    writeback.py  用了哪条决策、效果如何，status 升/降
-```
+场景卡可用于写前选路、写后定位问题，或只改一个已识别问题；不是必须照做的施工步骤。未测、没有匹配卡或没有真人读者时，可正常写作并保留验证状态。
 
-**核心原则**：读过的才敢用，用过的才敢信。
-没有索引的场景不让写，没有回填的决策不算验证过。
+## 查出处与文风统计
 
-## 四个组件
-
-| 组件 | 文件 | 干什么 |
-|---|---|---|
-| 场景索引 | `scripts/index.py` + `data/index.jsonl` | 从读书笔记里抽「场景 → 书 → 章号」 |
-| 文风量化 | `scripts/style.py` + `data/profiles.json` | 统计目标作者文风，对比你的稿子 |
-| 写完回填 | `scripts/writeback.py` + `data/writebacks.jsonl` | 记录决策使用效果，回填状态 |
-| 代理模板 | `references/reader-prompts.md` | 读者代理 / 挑刺代理的 prompt |
-
-## 命令
-
-### ① 判断
 ```bash
-python3 skills/writing-decision/scripts/decide.py --tags 玄幻 --scene "主角第一次杀人"
-```
-
-### ② 查料（按需读的关键）
-```bash
-python3 skills/writing-loop/scripts/index.py find --scene 打脸
-python3 skills/writing-loop/scripts/index.py find --scene 托孤 --book 十日终焉
-python3 skills/writing-loop/scripts/index.py list        # 场景排行
-```
-索引是**读出来的**：`index.py rebuild` 会扫所有单元笔记，把场景和章号抽出来。
-没读过的书，用搜索或粗标补，别硬编。
-
-### ③ 施工
-```bash
-python3 skills/scene-modules/scripts/query.py --type 打脸
-```
-
-### ⑤ 体检
-```bash
+python3 skills/writing-loop/scripts/index.py find --scene 告别
 python3 skills/writing-loop/scripts/style.py profile --book 十日终焉 --chapters 1-50
-python3 skills/writing-loop/scripts/style.py check --file 命烛/正文/第001章_开火.md --target 十日终焉
+python3 skills/writing-loop/scripts/style.py check --file 正文/第001章.md --target 十日终焉
 ```
-输出 9 项指标对比，差距 >25% 的会标出来，并给人话判断。
 
-### ⑥⑦ 读者 / 挑刺
-按 `references/reader-prompts.md` 里两段 prompt 派子代理。
-- 读者代理只给三问，**禁修改建议**；
-- 挑刺代理只找硬伤，**禁提文笔**；
-- 两个都只给正文，不给设定（给了设定，读者代理就变成编辑）。
+profile 写入文风档案，check 比较十项统计。选择与当前目标相关的样本和范围；题材、视角、场景功能不同，差异可能有合理原因。统计用于提出待核对的问题，不能证明风格相同、稿子更好或情绪有效，也不要求把稿子改到某个数值范围。
 
-### ⑧ 回填
+## 模型审阅与真人试读
+
+需要时读取 [references/reader-prompts.md](references/reader-prompts.md)：
+
+- 阅读反应检查：给当前章和目标读者实际已读的前文，不给后续大纲、作者意图或期待答案。模型输出标为模型推演；真人反馈单独记录。
+- 一致性检查：另给已定人物、规则、时间线及可追溯的前文事实。让审阅者指出本章与对照材料的位置，证据不足时保留待确认。
+- 两种审阅不互相灌输结论；意见先核对原文和任务目标，再决定是否改。没有固定追更分数或句式阈值决定质量。
+
+## 使用记录与效果证据
+
+普通使用、作者自检、模型审阅均可先记录：
+
 ```bash
 python3 skills/writing-loop/scripts/writeback.py add \
-  --chapter "命烛第1章" --used D-014,D-003 \
-  --effect "手抖写了两处，第二处偏长" --verdict 一般
+  --chapter "试写第1章" --used D-014 --reviewer-type model \
+  --effect "模型指出第二处身体反应可能重复，尚未真人试读" --verdict 一般
+```
 
-python3 skills/writing-loop/scripts/writeback.py report
+`--reviewer-type` 默认 usage（普通使用），author 是作者自检，model 是模型评审。`--verdict 好/一般/崩` 保留为记录者描述，不作为投票。旧日志，包括只有 `--compared yes` 的记录，继续作为使用记录，不冒充真人对照证据。
+
+若确有真人对照反馈，可以补齐本条技法在 B 相对 A 的结果：
+
+```bash
+python3 skills/writing-loop/scripts/writeback.py add \
+  --chapter "试写第1章" --used D-014 --reviewer-type reader \
+  --draft-a-ref "试写/A.md@版本1" --draft-b-ref "试写/B.md@版本1" \
+  --feedback-ref "反馈/读者原话.md#本次试读" \
+  --condition "人物试图维持镇定，限知视角可呈现身体感受" \
+  --comparison-result better --confirm-result \
+  --effect "读者更容易看出B稿人物在维持镇定，原话和起始句见反馈" --verdict 好
+```
+
+引用应能找回固定版本的两稿与实际反馈；无法定位起始句可如实留空。reader 只指真人，不能把读者模型代理改名为真人。confirm-result 表示记录者已核对引用与结论，不是把技法升级为普遍规律。一次效果对照只对应一条决策；多技法共同使用可另作普通记录，不能把整场效果归给每条技法。
+
+```bash
+python3 skills/writing-loop/scripts/writeback.py report --json
 python3 skills/writing-loop/scripts/writeback.py apply --dry-run
 python3 skills/writing-loop/scripts/writeback.py apply
 ```
-- 崩 ≥2 次 → `rejected`
-- 好 > 崩 → `verified`
-- 其余不降级
 
-## 数据
+apply 只更新决策状态与证据摘要，不改正文或历史记录：
 
-| 文件 | 内容 |
+| 状态 | 含义 |
 |---|---|
-| `data/index.jsonl` | 场景索引，一行一条 |
-| `data/profiles.json` | 文风档案 |
-| `data/writebacks.jsonl` | 回填记录，只追加 |
+| untested | 候选技法，尚未试用；有原文出处也不代表有效 |
+| tried | 已使用或自检，尚无完整的真人对照结论 |
+| conditional | 真人对照在所记录条件下支持 B，保留条件和反馈引用 |
+| dropped | 记录条件下暂不采用，不能推广为所有场景无效 |
+| no-diff | 真人对照明确反馈两版看不出区别 |
+| retired | 已退役，不被普通记录或一条好评自动复活 |
 
-## 已验证（2026-10-21）
+普通记录不覆盖已有 conditional/dropped/no-diff/retired。相反结果保留各自条件并标记需复核，不用好坏票数抵消成“无差异”。旧 derived/verified 按待试验理解，旧 rejected 按暂不采用理解，迁移时保留 legacy_status。
 
-- `index.py rebuild`：从 114 篇笔记抽出 **317 条 / 20 种场景**，死亡 85、追逐 37 等
-- `style.py profile`：十日终焉 1–50 章建档，均句 18.95、对话 53.37%
-- `style.py check`：9 项指标对比，9 项超阈值，输出可读
-- `writeback.py`：add/report/apply 跑通，dry-run 与幂等验证过
+## 数据与边界
 
-## 与其它 skill 的关系
+- data/index.jsonl：场景与出处索引；关键词命中不是对原文效果的验证。
+- data/profiles.json：描述性统计档案；建档会覆盖同名档案，按需执行。
+- data/writebacks.jsonl：只追加的使用与反馈记录。
+- apply 会修改 writing-decision/data/decisions.json，先查看 dry-run；测试用 writebacks/decisions 参数指向临时夹具。
 
-- `novel-study`：**产数据**（读书 → 笔记 → 规则）
-- `writing-decision`：**判断层**（这场用什么）
-- `scene-modules`：**施工层**（怎么搭）
-- `writing-loop`：**编排层**（把上面串起来，再补体检/读者/回填）
-
-## 注意
-
-- 索引和文风档案都依赖「真读过」。没读过的书不要往索引里塞假条目。
-- `writeback.py apply` 会改 `decisions.json`，先 `--dry-run`。
-- 读者代理和挑刺代理都要**只给正文**，否则它们会开始分析结构。
-- **文风体检要选对目标作者**：命烛是黑暗残酷玄幻，拿《十日终焉》（无限流悬疑）当目标是会测出「句子短 35%」的——那不是写坏了，是题材不同。要么先给目标书按题材建档，要么只比较「同题材」的书。
-- 文风体检的 9 项指标没有绝对好坏，只有「像不像目标」。差距大不等于要改，只等于「你离目标有多远」。
+新格式只向后用于未写单元或新反馈；不为补字段重写旧笔记、旧日志、正式副本或重置阅读进度。

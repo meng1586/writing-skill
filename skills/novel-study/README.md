@@ -12,10 +12,12 @@
 ## 30 秒上手
 
 ```bash
-cd /Users/meng/Desktop/deepseek相关/写点小说
+# 在当前克隆仓库根目录执行
 
 # 1) 今天读哪本、读哪几章
 python3 skills/novel-study/scripts/plan.py
+# 交给单元阅读代理时明确书目与本次章数
+python3 skills/novel-study/scripts/plan.py --book-key fanqie-7143038691944959011 --chapters 10 --json
 
 # 2) 抓正文
 python3 skills/novel-study/scripts/fetch.py book --source fanqie \
@@ -37,6 +39,8 @@ python3 skills/novel-study/scripts/apply.py --tags 玄幻,悬疑 --book 命烛
 | `references/选书标准.md` | 什么样的书值得学、什么时候止损 |
 | `references/note-template.md` | 三层阅读笔记模板 |
 | `references/rules-guide.md` | 规则库格式 |
+| `references/卷纲模板.md` | 完整冲突/卷/全书的承诺、选择与代价、局面变化、回应与承接 |
+| `data/rules/情绪.md` | 表达问题→条件选择→候选案例，按背景选办法 |
 | `scripts/fetch.py` | 找书元数据、抓章正文 |
 | `scripts/shelf.py` | 书架、评级、进度、统计 |
 | `scripts/plan.py` | 今日计划、同步到 `06-素材/读/` |
@@ -47,6 +51,10 @@ python3 skills/novel-study/scripts/apply.py --tags 玄幻,悬疑 --book 命烛
 | `06-素材/写作/备忘/` | 写作前备忘 |
 
 **读归读，写归写，但中间有桥**：读的产物按题材攒在 `06-素材/读/`，写作时用 `apply.py` 按题材筛出来，落到 `06-素材/写作/备忘/`。不靠记性，靠命令。
+
+`apply.py` 同时支持 `## R-维度-编号` 与 `## C-编号` 候选卡；输出保留状态、出处、条件和正文。旧「可用」标签仅表示入库，调用时按「待试验」处理。命中题材不证明本场适用，没有匹配也可继续写。
+
+新方法只向未写单元及后续写作生效，不回填旧笔记及正式副本。实际读书进度来自按 `book_key` 选择的书架条目；仓库附带的历史单书 `reading-progress.json` 不作为新书的当前进度。示例已完成时应另行登记要读的书，不重置旧样本。
 
 ## 每天怎么跑
 
