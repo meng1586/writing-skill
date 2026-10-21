@@ -940,6 +940,197 @@
       "verdict_reason": "无限流开局教科书，中后期注水",
       "finished": "2026-10-21",
       "finish_reason": "读完"
+    },
+    {
+      "key": "fanqie-7654593151348247614",
+      "name": "人在诡异，靠第四天灾登顶至高",
+      "author": "我时糕手",
+      "source": "fanqie",
+      "book_id": "7654593151348247614",
+      "status": "unread",
+      "added": "2026-10-21",
+      "chapters_done": 0,
+      "chapter_total": 349,
+      "local_dir": ".cache/novel-study/books/fanqie-7654593151348247614",
+      "tags": [
+        "诡异",
+        "异界",
+        "伪神",
+        "第四天灾",
+        "爽文"
+      ],
+      "sessions": [],
+      "last_studied": null,
+      "quality": 4,
+      "verdict": "keep",
+      "verdict_reason": "恐怖与搞笑同体、系统第二人格、实时倒计时，有能直接落笔的手法"
+    },
+    {
+      "key": "fanqie-7320218217488600126",
+      "name": "领主：我在苦痛世界，养成少女",
+      "author": "嘎嘎乱写",
+      "source": "fanqie",
+      "book_id": "7320218217488600126",
+      "status": "unread",
+      "added": "2026-10-21",
+      "chapters_done": 0,
+      "chapter_total": 1996,
+      "local_dir": ".cache/novel-study/books/fanqie-7320218217488600126",
+      "tags": [
+        "种田",
+        "西幻",
+        "争霸",
+        "多种族"
+      ],
+      "sessions": [],
+      "last_studied": null,
+      "quality": 4,
+      "verdict": "keep",
+      "verdict_reason": "网感吐槽卸紧张但转头写残酷，反派每句只加一个新信息；苦难成布景是反面教材"
+    },
+    {
+      "key": "fanqie-7583540512263506969",
+      "name": "精灵女王审讯录",
+      "author": "社畜宅宅",
+      "source": "fanqie",
+      "book_id": "7583540512263506969",
+      "status": "unread",
+      "added": "2026-10-21",
+      "chapters_done": 0,
+      "chapter_total": 479,
+      "local_dir": ".cache/novel-study/books/fanqie-7583540512263506969",
+      "tags": [
+        "西幻",
+        "后宫",
+        "渣男",
+        "权谋"
+      ],
+      "sessions": [],
+      "last_studied": null,
+      "quality": 3,
+      "verdict": "watch",
+      "verdict_reason": "权力表写法可学，但女性出场先成身体、苦难易成布景，题材偏后宫擦边"
+    },
+    {
+      "key": "fanqie-7601032456199736382",
+      "name": "必死反派的学院地下城生存指南",
+      "author": "黑暗加鲁鲁兽",
+      "source": "fanqie",
+      "book_id": "7601032456199736382",
+      "status": "unread",
+      "added": "2026-10-21",
+      "chapters_done": 0,
+      "chapter_total": 460,
+      "local_dir": ".cache/novel-study/books/fanqie-7601032456199736382",
+      "tags": [
+        "日式西幻",
+        "搞笑",
+        "修罗场",
+        "地下城"
+      ],
+      "sessions": [],
+      "last_studied": null,
+      "quality": 4,
+      "verdict": "keep",
+      "verdict_reason": "元游戏喜剧+系统捧哏+生死落差，第二三章有真活人感"
+    },
+    {
+      "key": "fanqie-7662321215717002264",
+      "name": "魔女金词条？我反派先薅为敬！",
+      "author": "南安很难安",
+      "source": "fanqie",
+      "book_id": "7662321215717002264",
+      "status": "unread",
+      "added": "2026-10-21",
+      "chapters_done": 0,
+      "chapter_total": 220,
+      "local_dir": ".cache/novel-study/books/fanqie-7662321215717002264",
+      "tags": [
+        "日式西幻",
+        "多女主",
+        "词条",
+        "爽文"
+      ],
+      "sessions": [],
+      "last_studied": null,
+      "quality": 3,
+      "verdict": "watch",
+      "verdict_reason": "词条流节奏快、梗密，但属日式西幻梗文，可作爽点参考不作主粮"
+    },
+    {
+      "key": "fanqie-7081535608648109069",
+      "name": "异兽迷城",
+      "author": "彭湃",
+      "source": "fanqie",
+      "book_id": "7081535608648109069",
+      "status": "reading",
+      "added": "2026-10-21",
+      "chapters_done": 95,
+      "chapter_total": 1322,
+      "local_dir": ".cache/novel-study/books/fanqie-7081535608648109069",
+      "tags": [
+        "都市高武",
+        "玄幻",
+        "系统",
+        "穿越",
+        "群像",
+        "热血"
+      ],
+      "sessions": [
+        {
+          "date": "2026-10-21",
+          "chapters": 35,
+          "minutes": 40,
+          "note": "正文1-35章拆解，出4篇三层笔记"
+        },
+        {
+          "date": "2026-10-21",
+          "chapters": 45,
+          "minutes": 75,
+          "note": "正文1-45章拆解，出6篇笔记"
+        }
+      ],
+      "last_studied": "2026-10-21",
+      "quality": 5,
+      "verdict": "keep",
+      "verdict_reason": "热血群像+系统+都市高武，开篇三章有真情绪和真的两难，长期霸榜"
+    },
+    {
+      "key": "fanqie-7276384138653862966",
+      "name": "我不是戏神",
+      "author": "三九音域",
+      "source": "fanqie",
+      "book_id": "7276384138653862966",
+      "status": "reading",
+      "added": "2026-10-21",
+      "chapters_done": 100,
+      "chapter_total": 1928,
+      "local_dir": ".cache/novel-study/books/fanqie-7276384138653862966",
+      "tags": [
+        "都市高武",
+        "玄幻",
+        "群像",
+        "热血",
+        "情绪流"
+      ],
+      "sessions": [
+        {
+          "date": "2026-10-21",
+          "chapters": 40,
+          "minutes": 45,
+          "note": "Qoder免费模型拆解1-40章，出5篇三层笔记"
+        },
+        {
+          "date": "2026-10-21",
+          "chapters": 60,
+          "minutes": 90,
+          "note": "Qoder免费模型拆解1-60章，出7篇笔记"
+        }
+      ],
+      "last_studied": "2026-10-21",
+      "quality": 5,
+      "verdict": "keep",
+      "verdict_reason": "情绪流+民俗恐怖，舞台化意象和看与被看贯穿，开篇就把人钉住"
     }
   ]
 }
