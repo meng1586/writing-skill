@@ -12,9 +12,9 @@
       "author": "杀虫队队员",
       "source": "fanqie",
       "book_id": "7143038691944959011",
-      "status": "reading",
+      "status": "done",
       "added": "2026-10-20",
-      "chapters_done": 1370,
+      "chapters_done": 1496,
       "chapter_total": 1496,
       "local_dir": ".cache/novel-study/books/fanqie-7143038691944959011",
       "tags": [
@@ -854,12 +854,92 @@
           "chapters": 10,
           "minutes": 25,
           "note": "读完 1361-1370 章（甜甜番外上半）"
+        },
+        {
+          "date": "2026-10-21",
+          "chapters": 10,
+          "minutes": 25,
+          "note": "读完 1371-1380 章"
+        },
+        {
+          "date": "2026-10-21",
+          "chapters": 10,
+          "minutes": 70,
+          "note": "读完 1381-1390 章（甜甜番外终章 + 卫国番外前五）"
+        },
+        {
+          "date": "2026-10-21",
+          "chapters": 10,
+          "minutes": 55,
+          "note": "读完 1391-1400 章"
+        },
+        {
+          "date": "2026-10-21",
+          "chapters": 10,
+          "minutes": 75,
+          "note": "读完 1401-1410 章"
+        },
+        {
+          "date": "2026-10-21",
+          "chapters": 10,
+          "minutes": 65,
+          "note": "读完 1411-1420 章：齐夏的老死与柳宗耀的白蛇面具"
+        },
+        {
+          "date": "2026-10-21",
+          "chapters": 10,
+          "minutes": 55,
+          "note": "读完 1421-1430 章"
+        },
+        {
+          "date": "2026-10-21",
+          "chapters": 10,
+          "minutes": 45,
+          "note": "读完 1431-1440 章（两张脸）"
+        },
+        {
+          "date": "2026-10-21",
+          "chapters": 10,
+          "minutes": 45,
+          "note": "读完 1441-1450 章"
+        },
+        {
+          "date": "2026-10-21",
+          "chapters": 10,
+          "minutes": 55,
+          "note": "读完 1451-1460 章"
+        },
+        {
+          "date": "2026-10-21",
+          "chapters": 10,
+          "minutes": 45,
+          "note": "读完 1461-1470 章（江若雪番外二～十一）"
+        },
+        {
+          "date": "2026-10-21",
+          "chapters": 10,
+          "minutes": 55,
+          "note": "读完 1471-1480 章"
+        },
+        {
+          "date": "2026-10-21",
+          "chapters": 10,
+          "minutes": 40,
+          "note": "读完 1481-1490 章"
+        },
+        {
+          "date": "2026-10-21",
+          "chapters": 6,
+          "minutes": 75,
+          "note": "读完 1491-1496 章（全书终）"
         }
       ],
       "last_studied": "2026-10-21",
       "quality": 5,
       "verdict": "keep",
-      "verdict_reason": "数字矛盾开局可直接偷；甜甜口语化=真话旁证；章末三类钩子轮换"
+      "verdict_reason": "无限流开局教科书，中后期注水",
+      "finished": "2026-10-21",
+      "finish_reason": "读完"
     }
   ]
 }

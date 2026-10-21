@@ -21,8 +21,8 @@
 
 ### 2. 读前情
 
-读 `skills/novel-study/data/notes/{书名}-前情提要.md`（如《十日终焉》就是
-`十日终焉-前情提要.md`）。**不要重读前面的章节正文。**
+读 `skills/novel-study/data/notes/{书名}/前情提要.md`（如《十日终焉》就是
+`十日终焉/前情提要.md`）。**不要重读前面的章节正文。**
 
 ### 3. 读正文
 
@@ -37,7 +37,7 @@
 
 ### 4. 写笔记
 
-文件名：`skills/novel-study/data/notes/{书名}-第{A}-{B}章.md`
+文件名：`skills/novel-study/data/notes/{书名}/第{A:03d}-{B:03d}章.md`（每本书一个目录）
 
 结构严格按 `skills/novel-study/references/note-template.md`，重点是：
 
@@ -58,7 +58,7 @@
 
 ### 4.5 更新前情提要
 
-读 `data/notes/{书名}-前情提要.md`，把本单元出现的**新人物、新设定、新线索、本单元已回收的伏笔**追加进去，
+读 `data/notes/{书名}/前情提要.md`，把本单元出现的**新人物、新设定、新线索、本单元已回收的伏笔**追加进去，
 并把文件开头的「截至第 X 章」改成新的章号。
 
 要求：

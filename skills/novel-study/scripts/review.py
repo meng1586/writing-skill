@@ -62,8 +62,9 @@ def cmd_new(args):
         print(f"错误：书架里没有 {args.key}", file=sys.stderr)
         return 2
     name = book.get("name") or args.key
-    os.makedirs(NOTES, exist_ok=True)
-    path = os.path.join(NOTES, f"{name}-总评.md")
+    book_dir = os.path.join(NOTES, name)
+    os.makedirs(book_dir, exist_ok=True)
+    path = os.path.join(book_dir, "总评.md")
     if os.path.exists(path) and not args.force:
         print(f"已存在：{path}（加 --force 覆盖）")
         return 0
@@ -116,7 +117,7 @@ def cmd_list(args):
     shelf = load_shelf()
     rows = []
     for b in shelf.get("books", []):
-        p = os.path.join(NOTES, f"{b.get('name')}-总评.md")
+        p = os.path.join(NOTES, b.get('name') or "", "总评.md")
         rows.append((b.get("name"), b.get("finish_reason", "-"),
                      b.get("status"), os.path.exists(p)))
     print(f"{'书名':<14}{'结束原因':<8}{'状态':<8}总评")

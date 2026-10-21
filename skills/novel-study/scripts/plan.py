@@ -121,8 +121,10 @@ def build_plan():
     for book in books:
         if book.get("status") not in ("reading", "done") or book.get("verdict") == "drop":
             continue
-        note_path = os.path.join(NOTES_DIR, f"{book.get('name')}.md")
-        if not os.path.isfile(note_path):
+        book_dir = os.path.join(NOTES_DIR, book.get("name") or "")
+        has_note = os.path.isdir(book_dir) and any(
+            f.endswith(".md") and f != "总评.md" for f in os.listdir(book_dir))
+        if not has_note:
             plan["notes_todo"].append(book.get("name"))
 
     # 规则库缺口
@@ -158,13 +160,14 @@ def sync_outputs():
     for src, dst in pairs:
         if not os.path.isdir(src):
             continue
-        os.makedirs(dst, exist_ok=True)
-        for name in sorted(os.listdir(src)):
-            if not name.endswith(".md"):
-                continue
-            s = os.path.join(src, name)
-            d = os.path.join(dst, name)
-            if os.path.isfile(s):
+        for root, _dirs, files in os.walk(src):
+            rel = os.path.relpath(root, src)
+            for name in sorted(files):
+                if not name.endswith(".md"):
+                    continue
+                s = os.path.join(root, name)
+                d = os.path.join(dst, rel, name) if rel != "." else os.path.join(dst, name)
+                os.makedirs(os.path.dirname(d), exist_ok=True)
                 if not os.path.isfile(d) or os.path.getmtime(s) > os.path.getmtime(d) or \
                         os.path.getsize(s) != os.path.getsize(d):
                     shutil.copy2(s, d)
