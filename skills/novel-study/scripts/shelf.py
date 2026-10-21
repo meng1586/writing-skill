@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""novel-study 书架工具（curator 维护，schema 见 ../CONTRACT.md）。
+"""novel-study 书架工具（使用约定见 ../CONTRACT.md）。
 
 子命令：
     add     把一本书加进书架（key 唯一，重复 add 退出码 2）
@@ -989,7 +989,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="shelf.py",
         description="novel-study 书架：add / list / log / judge / next / report / recover",
-        epilog="schema 见 skills/novel-study/CONTRACT.md；写盘为原子替换并保留 shelf.json.bak。",
+        epilog="使用约定见 skills/novel-study/CONTRACT.md；写盘为原子替换并保留 shelf.json.bak。",
     )
     parser.add_argument(
         "--shelf",

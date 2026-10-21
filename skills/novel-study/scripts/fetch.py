@@ -7,8 +7,8 @@ novel-study 采集层（collector）。
 
 子命令：
     search "书名" [--platform fanqie|tianxi|qidian|all] [--json]
-    info   --source fanqie --book-id 7143038691944959011 [--json]
-    book   --source fanqie --book-id 7143038691944959011 --from 1 --to 10 [--outdir DIR] [--json]
+    info   --source fanqie --book-id BOOK_ID [--json]
+    book   --source fanqie --book-id BOOK_ID --from 1 --to 10 [--outdir DIR] [--json]
 
 源适配可插拔：新源实现 Source 接口并注册到 SOURCES。
 
@@ -906,12 +906,12 @@ class FanqieSource(Source):
     BASE = "https://fanqienovel.com"
 
     def search(self, query: str) -> dict:
-        # 番茄搜索页/搜索 API 直连拿不到（见 CONTRACT.md 已验证事实）
+        # 当前适配器不实现番茄搜索；已有书号可交给 info/book。
         return {
             "query": query,
             "results": [],
             "error": "fanqie_search_unavailable",
-            "note": "番茄搜索接口不可直连；请用 web_search 或扫榜脚本找 bookId 后走 info/book。",
+            "note": "本工具未提供番茄搜索；请先自行确定 bookId，再调用 info/book。",
         }
 
     def info(self, book_id: str) -> dict:

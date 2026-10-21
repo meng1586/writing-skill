@@ -3,7 +3,7 @@
 
 做什么：
 
-- 扫 `data/usage/*.jsonl`，按 `skill + version + issue` 聚合；同 use_id 不重复计数
+- 扫 `data/usage/*.jsonl`，按 `skill + issue` 聚合（issue 去空白/标点，少量同义词合并）
 - 同类 issue 证据 ≥ 阈值（默认 3）→ 状态「待改」
 - 输出 markdown：问题排行、证据条数、建议改动、受影响文件；`--json` 给机器读
 
@@ -88,8 +88,6 @@ class Record:
     impact: str
     files: list = field(default_factory=list)
     source: str = ""
-    skill_version: str = ""
-    use_id: str = ""
 
     @property
     def ts_text(self) -> str:
@@ -202,9 +200,7 @@ def load_records(data_dir: Path):
                     suggestion=str(obj.get("suggestion") or "").strip(),
                     impact=impact,
                     files=files,
-                    source=f"{path.name}:{lineno}",
-                    skill_version=str(obj.get("skill_version") or "").strip(),
-                    use_id=str(obj.get("use_id") or "").strip(),
+                    source=path.name,
                 )
             )
 
@@ -222,11 +218,6 @@ class IssueGroup:
     key: str
     display: str
     records: list = field(default_factory=list)
-    skill_version: str = ""
-
-    @property
-    def label(self) -> str:
-        return f"{self.display}（版本：{self.skill_version or '未标注的历史记录'}）"
 
     @property
     def count(self) -> int:
@@ -283,18 +274,11 @@ class IssueGroup:
 
 def group_records(records: list) -> list:
     groups: dict = {}
-    seen_uses = set()
     for r in records:
-        key = (r.skill, r.skill_version, issue_key(r.issue))
-        if r.use_id:
-            use_key = (*key, r.use_id)
-            if use_key in seen_uses:
-                continue
-            seen_uses.add(use_key)
+        key = (r.skill, issue_key(r.issue))
         group = groups.get(key)
         if group is None:
-            group = IssueGroup(skill=r.skill, key=key[2], display=display_issue(r.issue),
-                               skill_version=r.skill_version)
+            group = IssueGroup(skill=r.skill, key=key[1], display=display_issue(r.issue))
             groups[key] = group
         group.records.append(r)
     return list(groups.values())
@@ -392,9 +376,6 @@ def render_markdown(groups: list, records: list, bad: list, threshold: int, top:
     lines.append(
         f"- 记录：{len(records)} 条｜Skill：{len(skill_rows)} 个｜问题类型：{len(groups)} 类｜待改：{pending_total}"
     )
-    counted = sum(g.count for g in groups)
-    if counted != len(records):
-        lines.append(f"- 计入阈值：{counted} 次｜同 use_id 重复记录：{len(records) - counted} 条（原日志保留）")
     lines.append(f"- 判定阈值：同类问题 ≥{threshold} 条证据｜高影响记录：{high_total} 条")
     if bad:
         lines.append(f"- 坏行：{len(bad)} 条（已跳过，见文末）")
@@ -425,7 +406,7 @@ def render_markdown(groups: list, records: list, bad: list, threshold: int, top:
         lines.append("|---:|---|---|---:|---:|---|")
         for i, g in enumerate(shown, 1):
             lines.append(
-                f"| {i} | {cell(g.skill)} | {cell(g.label)} | {g.count} | {g.high_count} | {g.status(threshold)} |"
+                f"| {i} | {cell(g.skill)} | {cell(g.display)} | {g.count} | {g.high_count} | {g.status(threshold)} |"
             )
         if len(shown) < len(ranked):
             lines.append("")
@@ -458,7 +439,7 @@ def render_markdown(groups: list, records: list, bad: list, threshold: int, top:
             lines.append(f"### {title}")
             lines.append("")
             for i, g in enumerate(items, 1):
-                lines.append(f"#### {i}. {g.label} — {g.count} 条证据")
+                lines.append(f"#### {i}. {g.display} — {g.count} 条证据")
                 lines.append("")
                 lines.append(f"- **状态**：{g.status(threshold)}")
                 lines.append(f"- **影响**：{fmt_impacts(g.impacts)}")
@@ -494,12 +475,12 @@ def render_markdown(groups: list, records: list, bad: list, threshold: int, top:
     if pending_groups:
         lines.append(f"- 有 {len(pending_groups)} 个问题攒够证据，可以动刀：")
         for g in pending_groups:
-            lines.append(f"  - `{g.skill}` / `{g.label}`（{g.count} 条）")
+            lines.append(f"  - `{g.skill}` / `{g.display}`（{g.count} 条）")
         no_sugg = [g for g in pending_groups if not g.suggestions]
         if no_sugg:
             lines.append("- 其中这些还没有建议，先补一条再改：")
             for g in no_sugg:
-                lines.append(f"  - `{g.skill}` / `{g.label}`")
+                lines.append(f"  - `{g.skill}` / `{g.display}`")
         lines.append(
             "- 改对应文件（优先 `SKILL.md`，其次 `references/`），改完在 `skills/skill-reflect/SKILL.md` 的「改进记录」加一行；下次继续记录，看同类问题是否停止增长。"
         )
@@ -509,7 +490,7 @@ def render_markdown(groups: list, records: list, bad: list, threshold: int, top:
         lines.append(
             f"- 暂无待改。最接近的是 `{closest.skill}` / `{closest.display}`（{closest.count}/{threshold}），再记录 {need} 条同类就能升级。"
         )
-        lines.append("- 这是复核优先级，不证明根因；已明确的实现错误可直接核验修复，其余继续记录。")
+        lines.append("- 现在不要提前改流程；先继续用、继续记。")
     else:
         lines.append("- 还没有记录。用某个 skill 时觉得不顺，先跑 `log.py` 记一条。")
     lines.append("")
@@ -561,7 +542,6 @@ def build_payload(groups: list, records: list, bad: list, threshold: int, genera
                 "issues": [
                     {
                         "issue": g.display,
-                        "skill_version": g.skill_version,
                         "key": g.key,
                         "status": g.status(threshold),
                         "count": g.count,
@@ -575,8 +555,6 @@ def build_payload(groups: list, records: list, bad: list, threshold: int, genera
                             {
                                 "ts": r.ts.isoformat(timespec="seconds"),
                                 "source": r.source,
-                                "skill_version": r.skill_version,
-                                "use_id": r.use_id,
                                 "stage": r.stage,
                                 "issue": r.issue,
                                 "suggestion": r.suggestion,
@@ -597,8 +575,6 @@ def build_payload(groups: list, records: list, bad: list, threshold: int, genera
         "threshold": threshold,
         "totals": {
             "records": len(records),
-            "counted_uses": sum(g.count for g in groups),
-            "duplicate_uses_ignored": len(records) - sum(g.count for g in groups),
             "skills": len(skills),
             "issue_types": len(groups),
             "pending": sum(1 for g in groups if g.count >= threshold),
@@ -610,7 +586,6 @@ def build_payload(groups: list, records: list, bad: list, threshold: int, genera
                 "rank": i,
                 "skill": g.skill,
                 "issue": g.display,
-                "skill_version": g.skill_version,
                 "count": g.count,
                 "high": g.high_count,
                 "status": g.status(threshold),

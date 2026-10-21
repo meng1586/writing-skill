@@ -1,88 +1,69 @@
 ---
 name: writing-loop
-description: "写作闭环：按需查技法和场景出处、统计文风差异、组织模型审阅与真人反馈，记录试用和有条件的对照结果。适用于写后检查、局部改稿和反馈回填；没有实测不阻塞原创写作。"
-metadata: {"version": "0.2.0"}
+version: 0.1.0-public
+description: "串联候选查询、可选文风统计、读者与事实校对、试写回填。触发：写作闭环、写完帮我体检、派个读者看看、记录用了哪条决策。"
 ---
 
-# writing-loop：写作闭环
+# writing-loop：写作与反馈
 
-按当前问题选择需要的环节，不必每章跑完整流程：
+按当前问题选择环节，不要求每章跑完整条流水线：
 
-1. 构思或卡住时，可查 writing-decision 与 scene-modules 的候选技法、适用条件、出处和风险。
-2. 需要对照原例时，用 `scripts/index.py find --scene 场景` 查出处；查不到可继续原创，不能编造原文依据。
-3. 写完后按需做文风统计、模型审阅或真人试读。已写前文是阅读语境，后续大纲和作者预设答案不是读者材料。
-4. 用 `scripts/writeback.py` 留下使用、修改与反馈记录；效果结论取决于证据类型，不取决于用了几次。
+候选查询 → 写作或局部试改 → 回读与反馈 → 记录条件 → 调整候选。
 
-场景卡可用于写前选路、写后定位问题，或只改一个已识别问题；不是必须照做的施工步骤。未测、没有匹配卡或没有真人读者时，可正常写作并保留验证状态。
+没有索引或匹配卡片时可以正常写。检索成功只验证工具可用，反馈也不自动证明写法有效。
 
-## 查出处与文风统计
+## 查询与索引
 
 ```bash
+python3 skills/writing-decision/scripts/decide.py --scene 告别
+python3 skills/scene-modules/scripts/query.py --type 告别
 python3 skills/writing-loop/scripts/index.py find --scene 告别
-python3 skills/writing-loop/scripts/style.py profile --book 十日终焉 --chapters 1-50
-python3 skills/writing-loop/scripts/style.py check --file 正文/第001章.md --target 十日终焉
+python3 skills/writing-loop/scripts/index.py list
 ```
 
-profile 写入文风档案，check 比较十项统计。选择与当前目标相关的样本和范围；题材、视角、场景功能不同，差异可能有合理原因。统计用于提出待核对的问题，不能证明风格相同、稿子更好或情绪有效，也不要求把稿子改到某个数值范围。
+公开索引初始为空。使用者自己的本地笔记可用 `index.py rebuild` 重建索引，或用 `add` 记录一条；不要补造没有阅读过的定位信息。索引原文和具体来源不随公开摘要分发。
 
-## 模型审阅与真人试读
-
-需要时读取 [references/reader-prompts.md](references/reader-prompts.md)：
-
-- 阅读反应检查：给当前章和目标读者实际已读的前文，不给后续大纲、作者意图或期待答案。模型输出标为模型推演；真人反馈单独记录。
-- 一致性检查：另给已定人物、规则、时间线及可追溯的前文事实。让审阅者指出本章与对照材料的位置，证据不足时保留待确认。
-- 两种审阅不互相灌输结论；意见先核对原文和任务目标，再决定是否改。没有固定追更分数或句式阈值决定质量。
-
-## 使用记录与效果证据
-
-普通使用、作者自检、模型审阅均可先记录：
+## 文风统计（可选）
 
 ```bash
-python3 skills/writing-loop/scripts/writeback.py add \
-  --chapter "试写第1章" --used D-014 --reviewer-type model \
-  --effect "模型指出第二处身体反应可能重复，尚未真人试读" --verdict 一般
+python3 skills/writing-loop/scripts/style.py list
+python3 skills/writing-loop/scripts/style.py profile --help
+python3 skills/writing-loop/scripts/style.py check --help
 ```
 
-`--reviewer-type` 默认 usage（普通使用），author 是作者自检，model 是模型评审。`--verdict 好/一般/崩` 保留为记录者描述，不作为投票。旧日志，包括只有 `--compared yes` 的记录，继续作为使用记录，不冒充真人对照证据。
+文风建档需要使用者本地的文本缓存；公开包不预装原项目的作者档案。句长、标点和对话占比用于定位值得检查的差异，不是质量达标线，差异大也不意味着应该改稿。
 
-若确有真人对照反馈，可以补齐本条技法在 B 相对 A 的结果：
+## 阅读反馈与事实校对
 
-```bash
-python3 skills/writing-loop/scripts/writeback.py add \
-  --chapter "试写第1章" --used D-014 --reviewer-type reader \
-  --draft-a-ref "试写/A.md@版本1" --draft-b-ref "试写/B.md@版本1" \
-  --feedback-ref "反馈/读者原话.md#本次试读" \
-  --condition "人物试图维持镇定，限知视角可呈现身体感受" \
-  --comparison-result better --confirm-result \
-  --effect "读者更容易看出B稿人物在维持镇定，原话和起始句见反馈" --verdict 好
-```
+模板见 [reader-prompts.md](references/reader-prompts.md)。
 
-引用应能找回固定版本的两稿与实际反馈；无法定位起始句可如实留空。reader 只指真人，不能把读者模型代理改名为真人。confirm-result 表示记录者已核对引用与结论，不是把技法升级为普遍规律。一次效果对照只对应一条决策；多技法共同使用可另作普通记录，不能把整场效果归给每条技法。
+- 阅读反馈：明确测试的是首次接触，还是已经读过必要前文的阅读条件。按这个条件提供材料；缺少必要前情不能直接算章节缺陷。
+- 事实校对：提供正文、相关设定与前文，检查因果、设定和时间线。
+- 模型反馈是待核实的判断。分数、角色记忆或单个出戏句都不直接决定删改，先回到具体文本与创作目标核对。
+
+## 记录与回填
+
+以下写入的是使用者本地记录：
 
 ```bash
-python3 skills/writing-loop/scripts/writeback.py report --json
+python3 skills/writing-loop/scripts/writeback.py add   --chapter "我的作品第1章" --used D-001   --effect "只记录这次试用观察，尚未做对照" --verdict 一般 --compared no
+
+python3 skills/writing-loop/scripts/writeback.py report
 python3 skills/writing-loop/scripts/writeback.py apply --dry-run
-python3 skills/writing-loop/scripts/writeback.py apply
 ```
 
-apply 只更新决策状态与证据摘要，不改正文或历史记录：
+确认变更后再运行 `apply`。它会修改当前包的决策状态文件；公开整理不得回写原项目的完整库。
 
-| 状态 | 含义 |
+| 状态 | 说明 |
 |---|---|
-| untested | 候选技法，尚未试用；有原文出处也不代表有效 |
-| tried | 已使用或自检，尚无完整的真人对照结论 |
-| conditional | 真人对照在所记录条件下支持 B，保留条件和反馈引用 |
-| dropped | 记录条件下暂不采用，不能推广为所有场景无效 |
-| no-diff | 真人对照明确反馈两版看不出区别 |
-| retired | 已退役，不被普通记录或一条好评自动复活 |
+| `untested` | 尚未试用 |
+| `tried` | 有使用记录，尚无对照结论 |
+| `conditional` | 当前对照记录倾向有帮助，仍须核对具体条件 |
+| `dropped` | 当前对照记录倾向不采用，保留编号与理由 |
+| `no-diff` | 当前对照记录未显示明确差别 |
 
-普通记录不覆盖已有 conditional/dropped/no-diff/retired。相反结果保留各自条件并标记需复核，不用好坏票数抵消成“无差异”。旧 derived/verified 按待试验理解，旧 rejected 按暂不采用理解，迁移时保留 legacy_status。
+脚本对比的是记录中的评价，不是独立判断效果。`conditional` 也不表示普遍有效；阅读中发现多个案例不能替代试写。
 
-## 数据与边界
+## 数据分工
 
-- data/index.jsonl：场景与出处索引；关键词命中不是对原文效果的验证。
-- data/profiles.json：描述性统计档案；建档会覆盖同名档案，按需执行。
-- data/writebacks.jsonl：只追加的使用与反馈记录。
-- apply 会修改 writing-decision/data/decisions.json，先查看 dry-run；测试用 writebacks/decisions 参数指向临时夹具。
-
-新格式只向后用于未写单元或新反馈；不为补字段重写旧笔记、旧日志、正式副本或重置阅读进度。
+`data/index.jsonl` 是本地场景定位；`data/profiles.json` 是按需生成的文风档案；`data/writebacks.jsonl` 是追加式反馈记录。公开包带摘要数据，使用者的原文、正文和反馈记录继续保存在本地。

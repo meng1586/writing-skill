@@ -5,8 +5,8 @@
 把「感觉像不像」变成「可测量地差多少」。
 
 用法:
-    python3 scripts/style.py profile --book 十日终焉 --chapters 1-100
-    python3 scripts/style.py check --file 我的章节.md --target 十日终焉 [--json]
+    python3 scripts/style.py profile --book 目标作品 --chapters 1-100
+    python3 scripts/style.py check --file 我的章节.md --target 目标作品 [--json]
     python3 scripts/style.py list
 
 统计口径（与 novel-study 笔记一致）:
@@ -16,9 +16,6 @@
   * 对话段 = 含有「」或“”的正文段落（一行算一段）；
   * 标点频率 = 出现次数 / 汉字总数 × 1000；
     省略号按整串算一次（…… / ...），破折号按整串算一次（—— / -）。
-
-注：句长与标点口径跟 novel-study 读书笔记一致，数值可直接对照；
-对话段口径不同（笔记记的是「对话起始段落」），两项不要直接比较。
 
 依赖: 仅 Python 3 标准库（3.8+）。
 """
@@ -137,7 +134,6 @@ def analyze(text: str) -> dict:
     for line in lines:
         sentences.extend(split_sentences(line))
 
-    body = "\n".join(lines)  # 标点只统计正文，不把标题/注释里的标点算进来
     hanzi = sum(hanzi_count(line) for line in lines)
     if hanzi == 0 or not sentences:
         fail("正文里几乎没有可统计的中文内容，检查文件格式或章节是否为空。")
@@ -152,10 +148,10 @@ def analyze(text: str) -> dict:
         1 for line in lines if "「" in line or "“" in line
     )
 
-    q_count = body.count("？") + body.count("?")
-    ex_count = body.count("！") + body.count("!")
-    ellipsis_count = len(ELLIPSIS_RE.findall(body))
-    dash_count = len(DASH_RE.findall(body))
+    q_count = text.count("？") + text.count("?")
+    ex_count = text.count("！") + text.count("!")
+    ellipsis_count = len(ELLIPSIS_RE.findall(text))
+    dash_count = len(DASH_RE.findall(text))
 
     def per1k(n: int) -> float:
         return round(n / hanzi * 1000, 2)
@@ -193,15 +189,6 @@ def read_text(path: Path) -> str:
         return path.read_text(encoding="utf-8", errors="replace")
     except OSError as exc:
         fail(f"读不了文件 {path}：{exc}")
-
-
-def is_dataless(path: Path) -> bool:
-    """iCloud/云盘占位文件：大小不为 0 但没有数据块，读它会卡在下载上。"""
-    try:
-        st = path.stat()
-    except OSError:
-        return False
-    return st.st_size > 0 and st.st_blocks == 0
 
 
 # ---------------------------------------------------------------------------
@@ -310,14 +297,10 @@ def cmd_profile(args) -> None:
     texts: list[str] = []
     skipped: list[int] = []
     missing: list[int] = []
-    dataless: list[int] = []
     for n in chapters:
         path = chap_dir / f"{n:04d}.txt"
         if not path.exists():
             missing.append(n)
-            continue
-        if is_dataless(path):
-            dataless.append(n)
             continue
         text = read_text(path)
         if hanzi_count(text) < 50:   # 残章/占位章，统计会被噪声带偏
@@ -342,7 +325,6 @@ def cmd_profile(args) -> None:
         "chapter_count": len(texts),
         "skipped_chapters": skipped,
         "missing_chapters": missing,
-        "dataless_chapters": dataless,
         "generated_at": now_iso(),
         "tool": f"style.py {VERSION}",
         "metrics": metrics,
@@ -358,9 +340,6 @@ def cmd_profile(args) -> None:
         print(f"  跳过过短章节：{short_ranges(skipped)}")
     if missing:
         print(f"  缺失章节：{short_ranges(missing)}")
-    if dataless:
-        print(f"  ⚠ 未下载到本地的章节（iCloud 占位文件，已跳过）：{short_ranges(dataless)}")
-        print("    要统计它们，先在 Finder 里把缓存目录下载到本地。")
     print(f"  平均句长 {m['avg_sentence_len']} 字 · 中位 {m['median_sentence_len']} 字"
           f" · ≤5 字 {m['short_sentence_ratio']}% · ≥30 字 {m['long_sentence_ratio']}%")
     print(f"  对话段 {m['dialogue_ratio']}% · 段落均长 {m['para_avg_len']} 字")
@@ -390,68 +369,95 @@ def short_ranges(nums: list[int]) -> str:
 # check 子命令
 # ---------------------------------------------------------------------------
 
-# key, 显示名（带单位）, 单位, 类型：len=数值型，pct=百分点型
+# key, 显示名, 单位, 是否百分点型
 METRIC_DEFS = [
-    ("avg_sentence_len", "平均句长（字）", "字", "len"),
-    ("median_sentence_len", "句长中位数（字）", "字", "len"),
-    ("short_sentence_ratio", "≤5 字短句（%）", "%", "pct"),
-    ("long_sentence_ratio", "≥30 字长句（%）", "%", "pct"),
-    ("dialogue_ratio", "对话段占比（%）", "%", "pct"),
-    ("para_avg_len", "段落均长（字）", "字", "len"),
-    ("q_per_1k", "问号（‰/千字）", "‰", "len"),
-    ("ex_per_1k", "感叹号（‰/千字）", "‰", "len"),
-    ("ellipsis_per_1k", "省略号（‰/千字）", "‰", "len"),
-    ("dash_per_1k", "破折号（‰/千字）", "‰", "len"),
+    ("avg_sentence_len", "平均句长", "字", False),
+    ("median_sentence_len", "句长中位数", "字", False),
+    ("short_sentence_ratio", "≤5 字短句占比", "%", True),
+    ("long_sentence_ratio", "≥30 字长句占比", "%", True),
+    ("dialogue_ratio", "对话段占比", "%", True),
+    ("para_avg_len", "段落平均长度", "字", False),
+    ("q_per_1k", "问号密度", "‰", False),
+    ("ex_per_1k", "感叹号密度", "‰", False),
+    ("ellipsis_per_1k", "省略号密度", "‰", False),
+    ("dash_per_1k", "破折号密度", "‰", False),
 ]
-
-DENSITY_KEYS = {"q_per_1k", "ex_per_1k", "ellipsis_per_1k", "dash_per_1k"}
 
 # 目标值几乎为零时，用绝对差判断（避免 0.0 被除出无穷大）
 ZERO_TARGET_TOL = 0.05
-DENSITY_ZERO = 0.5   # 目标密度低于 0.5‰ 时，百分比没意义，改看绝对差
-DENSITY_ABS = 0.5    # 密度绝对差阈值（‰）
-REL_TOL = 25.0       # 相对差阈值（%）
+ZERO_TARGET_ABS = 1.0
+REL_TOL = 25.0  # 百分点 / 相对差阈值
 
 
 def human_comment(key: str, draft: float, target: float, direction: int, rel: float, delta: float) -> str:
-    """统计只定位待核对之处，不由分布推断阅读效果。"""
-    side = "高于" if direction > 0 else "低于"
-    difference = (f"{abs(delta):.2f}‰" if key in DENSITY_KEYS and target < DENSITY_ZERO
-                  else f"{abs(rel):.0f}%" if target > ZERO_TARGET_TOL else f"{abs(delta):.2f}")
-    checks = {
-        "avg_sentence_len": "可核对长短句安排是否符合本场叙述目的",
-        "median_sentence_len": "可核对典型句子与特殊长短句各承担什么作用",
-        "short_sentence_ratio": "可核对短句出现的位置及其信息是否完整",
-        "long_sentence_ratio": "可核对长句的信息组织和具体可读性",
-        "dialogue_ratio": "可核对对话是否符合人物、信息与关系需要",
-        "para_avg_len": "可核对实际阅读版式与段落的信息组织",
-        "q_per_1k": "可逐处核对问句是否符合人物与场景",
-        "ex_per_1k": "可逐处核对感叹号是否符合当前语气",
-        "ellipsis_per_1k": "可逐处核对停顿是否有语境依据",
-        "dash_per_1k": "可逐处核对插入、转折或打断是否清楚",
-    }
-    return f"统计值{side}目标 {difference}；{checks[key]}，差异本身不要求修改"
+    """给一项差距配一句人话。direction: 1 你偏大，-1 你偏小。"""
+    pct = f"{abs(rel):.0f}%"
+    abs_d = f"{abs(delta):.1f}"
+    if target <= ZERO_TARGET_TOL:
+        if key == "dash_per_1k":
+            return f"目标几乎不用破折号，你却有 {draft:.1f}‰，句子被打断得有点多"
+        if key == "ex_per_1k":
+            return f"目标几乎不用感叹号，你却有 {draft:.1f}‰，情绪外放得比目标吵"
+        if key == "ellipsis_per_1k":
+            return f"目标几乎不用省略号，你却有 {draft:.1f}‰，停顿多了，说话变虚"
+        if key == "q_per_1k":
+            return f"目标几乎不用问号，你却有 {draft:.1f}‰，追问感比目标重"
+        return f"目标几乎为零，你却有 {draft:.2f}{('‰' if 'per_1k' in key else '')}"
+
+    if direction > 0:
+        table = {
+            "avg_sentence_len": f"你的句子比目标长 {pct}，读起来会更闷、更拖",
+            "median_sentence_len": f"你的中位句长比目标长 {pct}，长句是常态而不是点缀",
+            "short_sentence_ratio": f"≤5 字短句比目标多 {abs_d} 个百分点，碎句敲得勤，节奏更急",
+            "long_sentence_ratio": f"≥30 字长句比目标多 {abs_d} 个百分点，长句压场，手机上容易读滑",
+            "dialogue_ratio": f"对话段比目标多 {abs_d} 个百分点，更热闹，但也可能显得碎嘴",
+            "para_avg_len": f"段落比目标长 {pct}，手机上是一整坨字，眼睛更累",
+            "q_per_1k": f"问号密度比目标高 {pct}，追问感更重，也可能显得急躁",
+            "ex_per_1k": f"感叹号比目标多 {pct}，情绪外放，容易吵",
+            "ellipsis_per_1k": f"省略号比目标多 {pct}，停顿多，人物说话更虚",
+            "dash_per_1k": f"破折号比目标多 {pct}，插入语多，句子老被打断",
+        }
+    else:
+        table = {
+            "avg_sentence_len": f"你的句子比目标短 {pct}，读起来更碎、更赶",
+            "median_sentence_len": f"你的中位句长比目标短 {pct}，几乎没有喘气的长句",
+            "short_sentence_ratio": f"≤5 字短句比目标少 {abs_d} 个百分点，节奏起伏会变平",
+            "long_sentence_ratio": f"≥30 字长句比目标少 {abs_d} 个百分点，铺陈和压迫感不够",
+            "dialogue_ratio": f"对话段比目标少 {abs_d} 个百分点，叙事更闷、独白感更重",
+            "para_avg_len": f"段落比目标短 {pct}，一行一行翻得快，但可能不够沉",
+            "q_per_1k": f"问号密度比目标低 {pct}，交锋和悬念被压住了",
+            "ex_per_1k": f"感叹号比目标少 {pct}，高潮可能不够响",
+            "ellipsis_per_1k": f"省略号比目标少 {pct}，人物说话太干脆，缺犹豫",
+            "dash_per_1k": f"破折号比目标少 {pct}，叙述更直，少了插话感",
+        }
+    return table[key]
 
 
 def compare(draft: dict, target: dict) -> list[dict]:
     rows = []
-    for key, label, unit, kind in METRIC_DEFS:
+    for key, label, unit, is_point in METRIC_DEFS:
         d = float(draft[key])
         t = float(target[key])
         delta = d - t
-        rel = delta / t * 100 if t > ZERO_TARGET_TOL else 0.0
-        direction = 1 if delta > 0 else (-1 if delta < 0 else 0)
-
-        if key in DENSITY_KEYS and t < DENSITY_ZERO:
-            # 目标本来就几乎不用这种标点，百分比会算出「少 100%」这种废话
-            flagged = abs(delta) > DENSITY_ABS
-            gap_mode = "abs"
-        elif t <= ZERO_TARGET_TOL:
-            flagged = abs(delta) > 1.0
-            gap_mode = "abs"
+        if t > ZERO_TARGET_TOL:
+            rel = delta / t * 100
         else:
-            flagged = abs(rel) > REL_TOL
-            gap_mode = "point" if kind == "pct" else "rel"
+            rel = 0.0
+
+        flagged = False
+        if key in ("dash_per_1k", "ex_per_1k", "ellipsis_per_1k", "q_per_1k") and t <= ZERO_TARGET_TOL:
+            flagged = d > ZERO_TARGET_ABS
+            direction = 1 if d > t else 0
+        else:
+            if t > ZERO_TARGET_TOL:
+                flagged = abs(rel) > REL_TOL
+                direction = 1 if delta > 0 else (-1 if delta < 0 else 0)
+            else:
+                flagged = False
+                direction = 0
+        # 百分点型的相对差用自身数值算，避免 0 目标
+        if is_point and t > ZERO_TARGET_TOL:
+            rel = delta / t * 100
 
         comment = human_comment(key, d, t, direction, rel, delta) if flagged else ""
 
@@ -459,13 +465,11 @@ def compare(draft: dict, target: dict) -> list[dict]:
             "key": key,
             "label": label,
             "unit": unit,
-            "kind": kind,
             "draft": round(d, 2),
             "target": round(t, 2),
             "delta": round(delta, 2),
             "rel_pct": round(rel, 1),
             "direction": direction,
-            "gap_mode": gap_mode,
             "flagged": flagged,
             "comment": comment,
         })
@@ -486,27 +490,12 @@ def pad(s: str, width: int, align: str = "left") -> str:
     return (" " * gap + s) if align == "right" else (s + " " * gap)
 
 
-def fmt_num(value: float, unit: str) -> str:
-    """数值列只放数字，单位已经在指标名里，避免宽度计算被中文单位带偏。"""
-    return f"{value:.1f}"
-
-
-def gap_text(r: dict) -> str:
-    if r["gap_mode"] == "abs" and abs(r["delta"]) < 0.005:
-        return "0"
-    if r["gap_mode"] == "rel":
-        return f"{r['rel_pct']:+.1f}%"
-    if r["gap_mode"] == "point":
-        return f"{r['delta']:+.1f} 点"
-    if r["unit"] == "‰":
-        return f"{r['delta']:+.2f}‰"
-    if r["unit"] == "%":
-        return f"{r['delta']:+.1f} 点"
-    return f"{r['delta']:+.1f}"
-
-
-def chapter_label(spec: str) -> str:
-    return "全书" if str(spec).strip().lower() == "all" else f"第 {spec} 章"
+def fmt_num(key: str, value: float, unit: str) -> str:
+    if unit == "%":
+        return f"{value:.1f}%"
+    if unit == "‰":
+        return f"{value:.1f}‰"
+    return f"{value:.1f} 字"
 
 
 def render_check(draft_info: dict, target_name: str, target_entry: dict,
@@ -514,38 +503,43 @@ def render_check(draft_info: dict, target_name: str, target_entry: dict,
     m = draft_info["metrics"]
     t = target_entry["metrics"]
     lines: list[str] = []
-    lines.append("═" * 66)
-    lines.append(f" 文风体检：{draft_info['name']}  vs  {target_name}")
-    lines.append("═" * 66)
+    lines.append("═" * 62)
+    lines.append(f" 文风体检：{draft_info['name']}  vs  《{target_name}》")
+    lines.append("═" * 62)
     lines.append(f" 稿子：{m['hanzi_count']:,} 汉字 · {m['sentence_count']:,} 句 · "
                  f"{m['paragraph_count']:,} 段")
-    lines.append(f" 目标：《{target_name.strip('《》')}》 {chapter_label(target_entry['chapters'])}"
-                 f" · {t['hanzi_count']:,} 汉字 · {t['sentence_count']:,} 句"
-                 f"（{target_entry['generated_at'][:10]} 建档）")
+    lines.append(f" 目标：第 {target_entry['chapters']} 章 · {t['hanzi_count']:,} 汉字 · "
+                 f"{t['sentence_count']:,} 句（{target_entry['generated_at'][:10]} 建档）")
     if note:
         lines.append(f" 注意：{note}")
     lines.append("")
 
     header = ["指标", "你的稿子", "目标", "差距"]
-    widths = [
-        max(disp_width(header[0]), *(disp_width(r["label"]) for r in rows)),
-        max(disp_width(header[1]), *(disp_width(fmt_num(r["draft"], r["unit"])) for r in rows)),
-        max(disp_width(header[2]), *(disp_width(fmt_num(r["target"], r["unit"])) for r in rows)),
-        max(disp_width(header[3]), *(disp_width(gap_text(r) + " ⚠") for r in rows)),
-    ]
-    lines.append(" " + "   ".join(
-        pad(h, w, "left" if i == 0 else "right")
-        for i, (h, w) in enumerate(zip(header, widths))
-    ))
-    lines.append(" " + "─" * (sum(widths) + 3 * (len(widths) - 1)))
+    widths = [max(disp_width(header[0]), *(disp_width(r["label"]) for r in rows)),
+              max(disp_width(header[1]), *(disp_width(fmt_num(r["key"], r["draft"], r["unit"])) for r in rows)),
+              max(disp_width(header[2]), *(disp_width(fmt_num(r["key"], r["target"], r["unit"])) for r in rows)),
+              14]
+    lines.append(" " + " ".join(pad(h, w, "right" if i else "left")
+                                for i, (h, w) in enumerate(zip(header, widths))))
+    lines.append(" " + "─" * (sum(widths) + 3 * len(widths)))
 
     for r in rows:
+        d_str = fmt_num(r["key"], r["draft"], r["unit"])
+        t_str = fmt_num(r["key"], r["target"], r["unit"])
+        if r["key"] in ("q_per_1k", "ex_per_1k", "ellipsis_per_1k",
+                        "dash_per_1k", "avg_sentence_len", "median_sentence_len",
+                        "para_avg_len") and r["target"] > ZERO_TARGET_TOL:
+            gap = f"{r['rel_pct']:+.0f}%"
+        elif r["unit"] == "%":
+            gap = f"{r['delta']:+.1f} 点"
+        else:
+            gap = f"{r['delta']:+.1f}"
         mark = "⚠" if r["flagged"] else "✓"
-        lines.append(" " + "   ".join([
+        lines.append(" " + " ".join([
             pad(r["label"], widths[0]),
-            pad(fmt_num(r["draft"], r["unit"]), widths[1], "right"),
-            pad(fmt_num(r["target"], r["unit"]), widths[2], "right"),
-            pad(f"{gap_text(r)} {mark}", widths[3], "right"),
+            pad(d_str, widths[1], "right"),
+            pad(t_str, widths[2], "right"),
+            pad(f"{gap} {mark}", widths[3], "right"),
         ]))
 
     flagged = [r for r in rows if r["flagged"]]
@@ -555,30 +549,32 @@ def render_check(draft_info: dict, target_name: str, target_entry: dict,
         for r in flagged:
             lines.append(f"  ⚠ {r['label']}：{r['comment']}")
     else:
-        lines.append(" ── 十项统计均在当前差异阈值内 ──")
+        lines.append(f" ── 十项全部在 ±{REL_TOL:.0f}% 以内，文风很贴 ──")
 
     lines.append("")
-    lines.append(f" 一句话：{summarize(flagged)}")
+    lines.append(f" 一句话：{summarize(flagged, draft_info['name'])}")
     return "\n".join(lines)
 
 
-def summarize(flagged: list[dict]) -> str:
+def summarize(flagged: list[dict], draft_name: str) -> str:
     if not flagged:
-        return "十项统计在比较区间内；这不判断人物、结构、情绪效果或整体文风。"
+        return "十项都在目标区间里，可以直接往下写；剩下的是句子本身好不好看。"
     ranked = sorted(
         flagged,
         key=lambda r: abs(r["rel_pct"]) if r["target"] > ZERO_TARGET_TOL else 100.0,
         reverse=True,
     )
+    top = ranked[:2]
     parts = []
-    for r in ranked[:2]:
-        short = r["label"].split("（")[0]
-        if r["gap_mode"] == "abs" and r["unit"] == "‰":
-            detail = f"{r['delta']:+.2f}‰"
+    for r in top:
+        if r["target"] <= ZERO_TARGET_TOL:
+            parts.append(f"{r['label']}（目标几乎为零）")
+        elif r["unit"] == "%":
+            parts.append(f"{r['label']}（{r['delta']:+.1f} 点）")
         else:
-            detail = gap_text(r)
-        parts.append(f"{short} {detail}")
-    return "、".join(parts) + " 的统计差异最大；按场景目的核对相关段落，无需为对齐数值改稿。"
+            parts.append(f"{r['label']}（{r['rel_pct']:+.0f}%）")
+    tail = "，先改这两项再谈味道。" if len(flagged) > 2 else "，改完再看一遍。"
+    return "、".join(parts) + " 差得最多" + tail
 
 
 # ---------------------------------------------------------------------------
@@ -590,7 +586,7 @@ def cmd_list(args) -> None:
     profiles = data.get("profiles", {})
     if not profiles:
         print("还没有文风档案。先跑：")
-        print("  python3 scripts/style.py profile --book 十日终焉 --chapters 1-100")
+        print("  python3 scripts/style.py profile --book 目标作品 --chapters 1-100")
         return
 
     print(f" 已有文风档案（{len(profiles)} 本）  ·  {PROFILE_PATH}")
@@ -598,15 +594,10 @@ def cmd_list(args) -> None:
     rows = []
     for name, entry in sorted(profiles.items()):
         m = entry.get("metrics", {})
-        requested = (entry.get("chapter_count", 0)
-                     + len(entry.get("skipped_chapters", []))
-                     + len(entry.get("missing_chapters", [])))
-        used = entry.get("chapter_count", 0)
-        chap_cell = f"{used}/{requested} 章" if requested and requested != used else f"{used} 章"
         rows.append([
             name,
             f"[{entry.get('chapters', '?')}]",
-            chap_cell,
+            f"{entry.get('chapter_count', 0)} 章",
             f"{m.get('hanzi_count', 0):,} 字",
             f"均句 {m.get('avg_sentence_len', 0)}",
             f"对话 {m.get('dialogue_ratio', 0)}%",
@@ -620,17 +611,6 @@ def cmd_list(args) -> None:
     for r in rows:
         print(" " + "  ".join(pad(v, w) for v, w in zip(r, widths)))
 
-    notes = []
-    for name, entry in sorted(profiles.items()):
-        dl = len(entry.get("dataless_chapters", []))
-        if dl:
-            notes.append(f"⚠ 《{name}》有 {dl} 章还没下载到本地，本次统计没有覆盖它们。")
-    if notes:
-        print()
-        for note in notes:
-            print(" " + note)
-        print("  要补全：在 Finder 里把 .cache/novel-study/books 对应目录下载到本地，再重新 profile。")
-
 
 # ---------------------------------------------------------------------------
 # check 主流程
@@ -640,8 +620,6 @@ def cmd_check(args) -> None:
     path = Path(args.file).expanduser()
     if not path.exists():
         fail(f"稿子不存在：{path}")
-    if is_dataless(path):
-        fail(f"稿子还没有下载到本地（iCloud/云盘占位文件），读它会卡住：{path}")
     text = read_text(path)
     draft = analyze(text)
     run_note = ""
@@ -667,17 +645,17 @@ def cmd_check(args) -> None:
             "file_name": path.name,
             "target": args.target,
             "target_chapters": target.get("chapters"),
-            "draft": draft,
+            "draft": {k: v for k, v in draft.items() if k != "punct_counts"},
             "target_metrics": target["metrics"],
             "metrics": rows,
             "flagged_count": len(flagged),
-            "summary": summarize(flagged),
+            "summary": summarize(flagged, path.name),
         }
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return
 
     draft_info = {"name": path.name, "metrics": draft}
-    print(render_check(draft_info, f"《{args.target}》", target, rows, note=run_note))
+    print(render_check(draft_info, args.target, target, rows, note=run_note))
 
 
 # ---------------------------------------------------------------------------
@@ -691,15 +669,15 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "例子:\n"
-            "  python3 scripts/style.py profile --book 十日终焉 --chapters 1-100\n"
-            "  python3 scripts/style.py check --file 我的章节.md --target 十日终焉\n"
-            "  python3 scripts/style.py check --file ch001.md --target 十日终焉 --json\n"
+            "  python3 scripts/style.py profile --book 目标作品 --chapters 1-100\n"
+            "  python3 scripts/style.py check --file 我的章节.md --target 目标作品\n"
+            "  python3 scripts/style.py check --file ch001.md --target 目标作品 --json\n"
             "  python3 scripts/style.py list\n\n"
             "统计口径:\n"
             "  只算正文（剔除 # 标题行、注释、空行）；按 。！？… 整串切句，换行也是边界；\n"
             "  句长与段落长只数汉字；对话段 = 含「」或“”的段落；\n"
             "  标点频率 = 次数 / 汉字数 × 1000，省略号与破折号按整串算一次。\n"
-            "  句长/标点口径与 novel-study 读书笔记一致（可直接对照数值）；\n  对话段按「含引号的段落」算，笔记里是「对话起始段落」，两者不可直接比。\n"
+            "  这跟 novel-study 读书笔记的实测口径一致，档案可直接对照。\n"
         ),
     )
     parser.add_argument("-V", "--version", action="version", version=f"style.py {VERSION}")
@@ -712,7 +690,7 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p_profile.add_argument("--book", required=True, metavar="书名",
-                           help="书名、book_id 或缓存目录名，如 十日终焉")
+                           help="书名、book_id 或缓存目录名，如 目标作品")
     p_profile.add_argument("--chapters", default="1-100", metavar="范围",
                            help="章节范围：1-100 / 1,5,9-12 / all（默认 1-100）")
     p_profile.add_argument("--cache-dir", metavar="目录",
@@ -727,8 +705,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_check.add_argument("--file", required=True, metavar="文件",
                          help="你的稿子（.md / .txt 都行）")
     p_check.add_argument("--target", required=True, metavar="书名",
-                         help="目标作者的书，如 十日终焉（需先 profile）")
+                         help="目标作者的书，如 目标作品（需先 profile）")
     p_check.add_argument("--json", action="store_true", help="输出 JSON，方便脚本消费")
+    p_check.add_argument("--cache-dir", metavar="目录", help="书库缓存目录（一般不用给）")
     p_check.set_defaults(func=cmd_check)
 
     p_list = sub.add_parser("list", help="列出已有文风档案",

@@ -1,4 +1,13 @@
-__pycache__/
+.cache/
+**/__pycache__/
 *.pyc
-.DS_Store
-*.bak
+06-素材/
+skills/novel-study/data/notes/*
+!skills/novel-study/data/notes/.gitkeep
+!skills/novel-study/data/notes/README.md
+skills/novel-study/data/shelf.json.bak
+skills/novel-study/data/shelf.json.corrupt-*
+skills/writing-loop/data/profiles.json
+skills/writing-loop/data/writebacks.jsonl
+skills/skill-reflect/data/usage/
+*.tmp

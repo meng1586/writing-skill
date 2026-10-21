@@ -12,9 +12,9 @@
   rebuild   从 novel-study 笔记批量重建索引
 
 示例
-  python3 scripts/index.py add --book 十日终焉 --chapters 971-980 --scene 托孤 --note "白羊托孤"
+  python3 scripts/index.py add --book 示例作品 --chapters 1-10 --scene 托孤 --note "角色交接责任"
   python3 scripts/index.py find --scene 托孤
-  python3 scripts/index.py find --scene 告别 --book 十日终焉 --json
+  python3 scripts/index.py find --scene 告别 --book 示例作品 --json
   python3 scripts/index.py list
   python3 scripts/index.py rebuild
 
@@ -53,15 +53,14 @@ NOTES_DIR = BASE_DIR.parent / "novel-study" / "data" / "notes"
 
 # 笔记里梗概段的标记
 SUMMARY_MARK = "这一段大概讲了什么"
-# 笔记文件名 / 梗概标题里的章节范围：第971-980章、第 971–980 章、1-10章
+# 笔记文件名 / 梗概标题里的章节范围：第1-10章、第 1–10 章、1-10章
 RANGE_RE = re.compile(r"第\s*(\d+)\s*[-–—~至]\s*(\d+)\s*章")
 CHAPTER_HEAD_RE = re.compile(r"(\d+)")
 
 # ---------------------------------------------------------------- 场景词表
 #
-# 依据：对 119 篇十日终焉单元笔记的梗概做词频摸底后手工校准。
-# 故意不用「死」「血」之外的单字宽词，也故意删掉了「记忆」「合作」这类
-# 一命中就满屏误报的词（「保住记忆」不是失忆，「羊=说谎、狗=合作」不是结盟）。
+# 场景词表用于初筛，命中结果须结合笔记人工复核。
+# 避免过宽的单字或多义词；弱信号需要组合匹配。
 
 SCENE_LEXICON = {
     "打脸": (
@@ -77,8 +76,7 @@ SCENE_LEXICON = {
     "告别": (
         ("告别", "道别", "永别", "诀别", "最后一面", "送别", "临别", "说再见", "再见了",
          "离开之前", "最后一程"),
-        # 「离开」「走了」是同义叠加，一起出现也证明不了告别场景
-        # （「离开前从尸体口袋摸走一样东西」就被误报过），只留「再见」做弱信号。
+        # 「离开」「走了」是同义叠加，不能据此判定告别；只留「再见」做弱信号。
         ("再见",),
     ),
     "绝境": (
@@ -176,13 +174,13 @@ def now_iso() -> str:
 
 
 def chapter_start(chapters: str) -> int:
-    """把 '971-980' 排成 '971'，用于稳定排序。"""
+    """把 '1-10' 排成 '1'，用于稳定排序。"""
     m = CHAPTER_HEAD_RE.search(chapters or "")
     return int(m.group(1)) if m else 10 ** 9
 
 
 def normalize_chapters(raw: str) -> str:
-    """'971–980 章' / '第971-980章' 统一成 '971-980'；认不出就原样返回。"""
+    """'1–10 章' / '第1-10章' 统一成 '1-10'；认不出就原样返回。"""
     if not raw:
         return ""
     m = RANGE_RE.search(raw)
@@ -441,7 +439,9 @@ def cmd_rebuild(args) -> int:
         print("（场景索引依赖 novel-study 的单元笔记）", file=sys.stderr)
         return 2
 
-    files = sorted(NOTES_DIR.glob("*.md"))
+    # 笔记按书分目录（notes/{书名}/），必须递归；跳过非单元笔记的汇总文件
+    SKIP = {"README.md", "前情提要.md", "总评.md", "总纲.md"}
+    files = sorted(p for p in NOTES_DIR.rglob("*.md") if p.name not in SKIP)
     rows, skipped, no_summary, no_hit = [], [], [], []
     covered = set()
 
@@ -533,9 +533,9 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "示例：\n"
-            "  python3 scripts/index.py add --book 十日终焉 --chapters 971-980 --scene 托孤 --note \"白羊托孤\"\n"
+            "  python3 scripts/index.py add --book 示例作品 --chapters 1-10 --scene 托孤 --note \"角色交接责任\"\n"
             "  python3 scripts/index.py find --scene 托孤\n"
-            "  python3 scripts/index.py find --scene 告别 --book 十日终焉 --json\n"
+            "  python3 scripts/index.py find --scene 告别 --book 示例作品 --json\n"
             "  python3 scripts/index.py list\n"
             "  python3 scripts/index.py rebuild\n\n"
             "场景词表（20 种）：\n  " + "、".join(SCENE_ORDER) + "\n"
@@ -545,10 +545,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     a = sub.add_parser("add", help="追加一条索引（边读边记）",
                        description="往 data/index.jsonl 追加一条场景记录。")
-    a.add_argument("--book", required=True, help="书名，例如 十日终焉")
-    a.add_argument("--chapters", required=True, help="章节范围，例如 971-980")
+    a.add_argument("--book", required=True, help="书名，例如 示例作品")
+    a.add_argument("--chapters", required=True, help="章节范围，例如 1-10")
     a.add_argument("--scene", required=True, help="场景类型，例如 托孤")
-    a.add_argument("--note", default="", help="备注，例如「白羊托孤」")
+    a.add_argument("--note", default="", help="备注，例如「角色交接责任」")
     a.set_defaults(func=cmd_add)
 
     f = sub.add_parser("find", help="查某个场景出现在哪些单元",

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """decide.py — 写作决策树：这一场戏该怎么写
 
-按题材、场景、章节位置检索候选；是否采用仍须复核本场目标、人物状态和视角。
+不是操作手册，是 if-then：给题材、场景、章节位置，翻出 3–5 条能直接照着写的决策。
 
 用法：
   python3 scripts/decide.py --tags 玄幻 --scene "主角第一次杀人"
@@ -22,55 +22,17 @@ import sys
 SKILL_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_DATA = os.path.join(SKILL_DIR, "data", "decisions.json")
 DIMENSIONS = ["开篇", "节奏", "人物", "对话", "章末钩子", "语言"]
+STATUS_LABELS = {"untested": "待试验", "tried": "已试用", "conditional": "有条件有用", "dropped": "暂不采用", "no-diff": "看不出区别"}
 POSITION_WORDS = [
     ("开篇", ["开篇", "开头", "第一章", "第一段", "第一句", "楔子", "开局"]),
     ("章末", ["章末", "章尾", "结尾", "收章", "最后一句", "断章", "钩子"]),
     ("卷末", ["卷末", "卷尾", "本卷结束", "终章", "大结局"]),
 ]
-STATUS_LABELS = {
-    "untested": "待试验",
-    "tried": "已试用，效果未定",
-    "conditional": "有条件有用",
-    "dropped": "暂不采用",
-    "no-diff": "对照看不出区别",
-    "retired": "已退役",
-}
-# 旧 verified 只表示有原文出处，不能据此认定写作效果经过验证。
-LEGACY_STATUSES = {"derived": "untested", "verified": "untested", "rejected": "dropped"}
-CONTEXT_REVIEW = {
-    "required": True,
-    "questions": [
-        "本场希望读者在乎什么？要确认、加深、维持或改变哪些判断？候选动作是否服务这个目标？",
-        "人物此刻的目标、能力、关系和反应是否支持这条写法？",
-        "当前视角允许谁知道、感到什么？信息和感受的表达是否一致？",
-    ],
-    "note": "关键词只负责召回候选；语境不符可全部不用，未套动作或组合不构成写坏的证据。",
-}
 
 
 def die(msg):
     print(f"decide.py: {msg}", file=sys.stderr)
     sys.exit(2)
-
-
-def status_of(decision):
-    raw = decision.get("status", "untested")
-    status = LEGACY_STATUSES.get(raw, raw)
-    if status not in STATUS_LABELS:
-        die(f"未知状态「{raw}」（{decision.get('id', '无编号')}）")
-    return status
-
-
-def status_label(decision):
-    label = STATUS_LABELS[status_of(decision)]
-    legacy = decision.get("legacy_status")
-    if not legacy and decision.get("status") in LEGACY_STATUSES:
-        legacy = decision["status"]
-    return f"{label}；兼容旧状态 {legacy}" if legacy else label
-
-
-def is_active(decision):
-    return status_of(decision) not in ("dropped", "retired")
 
 
 def load_data(path=DEFAULT_DATA):
@@ -81,13 +43,13 @@ def load_data(path=DEFAULT_DATA):
             data = json.load(f)
     except json.JSONDecodeError as e:
         die(f"决策数据不是合法 JSON：{e}")
-    if not data.get("decisions"):
-        die("决策数据里没有 decisions 数组")
-    for decision in data["decisions"]:
-        raw = decision.get("status", "untested")
-        decision["status"] = status_of(decision)
-        if raw in LEGACY_STATUSES:
-            decision["legacy_status"] = raw
+    if not isinstance(data, dict):
+        die(f"决策数据的根节点必须是对象，实际是 {type(data).__name__}")
+    if "decisions" not in data:
+        die("决策数据缺少 decisions 字段（空数组是合法的）")
+    if not isinstance(data["decisions"], list):
+        die("decisions 必须是数组")
+    data.setdefault("combos", [])
     return data
 
 
@@ -178,7 +140,7 @@ def select(data, tags, scene, position, dimension, limit):
     rows = []
     for i, d in enumerate(data["decisions"]):
         # v2：淘汰/暂不采用的决策不再推荐
-        if not is_active(d):
+        if d.get("status") in ("dropped", "rejected", "retired"):
             continue
         if dimension and d["dimension"] != dimension:
             continue
@@ -236,19 +198,10 @@ def select(data, tags, scene, position, dimension, limit):
     return picked, len(direct), len(fallback)
 
 
-def combo_is_eligible(data, combo, picked_ids=None):
-    """说明覆盖整条组合；任一成员被过滤或未入选时，不输出残缺组合。"""
-    order = combo.get("order", [])
-    active = {d["id"] for d in data["decisions"] if is_active(d)}
-    return len(order) >= 2 and set(order) <= active and (picked_ids is None or set(order) <= picked_ids)
-
-
 def find_combo(data, picked_ids, scene=""):
-    """只返回本轮完整入选且可用的候选组合，文本和 JSON 共用这个结果。"""
+    """只有场景命中 combo 的 triggers 时才返回，避免「章末没钩子」被解谜局冒领。"""
     best, best_hit = None, 0
     for combo in data.get("combos", []):
-        if not combo_is_eligible(data, combo, picked_ids):
-            continue
         trig = combo.get("triggers") or []
         if trig and not any(t in (scene or "") for t in trig):
             continue
@@ -290,26 +243,22 @@ def fmt_case(case):
 def render_match(r, idx):
     d = r["decision"]
     lines = []
-    lines.append(f"{idx}) {d['id']} [{d['dimension']}] {d['title']}（{status_label(d)}）")
+    status = d.get("status", "untested")
+    flag = f"（{STATUS_LABELS.get(status, status)}）"
+    lines.append(f"{idx}) {d['id']} [{d['dimension']}] {d['title']}{flag}")
     lines.append(f"   匹配：{match_line(r)}")
     when = d["trigger"].get("when", "")
     if when:
         lines.append(f"   什么时候用：{when}")
-    lines.append("   候选动作（按本场取舍）：")
+    lines.append("   照着写：")
     for step in d["move"]:
         lines.append(f"     - {step}")
-    lines.append(f"   机理假设：{d['why']}")
-    lines.append(f"   参考：{fmt_case(d['case'])}")
-    if d["case"].get("note"):
-        lines.append(f"         {d['case']['note']}")
-    for evidence in d.get("effect_evidence", []):
-        lines.append(f"   已记录对照：{evidence.get('condition', '条件未记录')}｜"
-                     f"{evidence.get('comparison_result', '结果未记录')}｜"
-                     f"反馈：{evidence.get('feedback_ref', '来源未记录')}")
-    if status_of(d) == "conditional" and not d.get("effect_evidence"):
-        lines.append("   效果条件未附记录，采用前需复核，不能据此声称已获真人验证。")
-    if d.get("effect_review_required"):
-        lines.append("   已记录结果存在分歧，需按情境复核，不作普遍有效结论。")
+    lines.append(f"   作用说明：{d['why']}")
+    case = d.get("case")
+    if isinstance(case, dict) and case:
+        lines.append(f"   参考：{fmt_case(case)}")
+        if case.get("note"):
+            lines.append(f"         {case['note']}")
     risks = [x.rstrip("。；;") for x in d["risk"]]
     lines.append("   崩法：" + "；".join(risks) + "。")
     return "\n".join(lines)
@@ -332,7 +281,7 @@ def render_text(data, query, picked, n_direct, n_fallback):
         out.append("你可以：")
         out.append("  - 换一个更具体的场景词，比如「第一次杀人」「章末没钩子」「反派登场」「损友对话」")
         out.append("  - 补题材再试：--tags 玄幻")
-        out.append("  - 先看全部 24 条，人工挑：--list")
+        out.append(f"  - 先看全部 {len(data['decisions'])} 条，人工挑：--list")
         return "\n".join(out)
 
     picked_direct = sum(1 for r in picked if r["scene_hits"])
@@ -340,10 +289,7 @@ def render_text(data, query, picked, n_direct, n_fallback):
         out.append(f"共 {len(picked)} 条｜场景直击 {picked_direct} 条 · 补位 {len(picked) - picked_direct} 条")
     else:
         out.append(f"共 {len(picked)} 条｜按题材相关度排序，已跨维度取样（没给场景）")
-    out.append("以下是检索候选，分数不代表效果或适用性已经验证。")
-    out.append("落笔前先复核本场语境：")
-    out.extend(f"{i}. {question}" for i, question in enumerate(CONTEXT_REVIEW["questions"], 1))
-    out.append(CONTEXT_REVIEW["note"])
+    out.append("先看第 1 条：它给这场戏定调；落笔顺序看最后一节「这一场怎么串」。")
     out.append("")
 
     for i, r in enumerate(picked, 1):
@@ -352,12 +298,22 @@ def render_text(data, query, picked, n_direct, n_fallback):
 
     combo = find_combo(data, {r["decision"]["id"] for r in picked}, scene)
     if combo:
-        out.append("——— 候选组合（语境复核后可取舍） ———")
-        out.append(f"[{combo['name']}] 全部 {len(combo['order'])} 条均在本轮候选中")
-        out.append("参考顺序：" + " → ".join(combo["order"]))
+        picked_ids = {r["decision"]["id"] for r in picked}
+        active_ids = {d["id"] for d in data["decisions"] if d.get("status") not in ("dropped", "rejected", "retired")}
+        order = [x for x in combo["order"] if x in picked_ids and x in active_ids]
+        out.append("——— 这一场怎么串 ———")
+        out.append(f"[{combo['name']}] 命中 {len(order)}/{len(combo['order'])}")
+        out.append("顺序：" + " → ".join(order))
         out.append(combo["note"])
         out.append("")
-    out.append("下一步：只把语境相符的候选带进场景；写后用具体文本核对效果假设，保留未测和失效情况。")
+    out.append("下一步：把命中的条目贴进这一章的细纲/场景卡，按顺序落笔；写完回看「崩法」逐条对照。")
+    out.append("")
+    out.append("## 落笔前先过三道前提（不满足就别用）")
+    out.append("1. 这场戏要什么效果？先明确希望读者理解或感受到什么，再核对候选做法是否服务这个目标。")
+    out.append("2. 人物此刻什么状态？有同伴 / 独自在场 / 多年后回忆，写法不同。")
+    out.append("3. 叙述视角允许呈现哪些信息？核对观察、动作、感受和判断是否符合当前叙述约定。")
+    out.append("")
+    out.append("三条有一条对不上 → 这条决策可能不适用，允许全部不用。检索给的是候选，不是命令。")
     return "\n".join(out)
 
 
@@ -366,14 +322,17 @@ def render_list(data, dimension):
     for d in data["decisions"]:
         groups.setdefault(d["dimension"], []).append(d)
     total = sum(len(v) for v in groups.values())
-    counts = {status: sum(status_of(d) == status for d in data["decisions"])
-              for status in STATUS_LABELS}
+    status_counts = {status: sum(1 for d in data["decisions"]
+                                 if d.get("status", "untested") == status)
+                     for status in STATUS_LABELS}
     if dimension:
         n = len(groups.get(dimension, []))
         out = [f"写作决策树 · {dimension} · {n} 条", ""]
     else:
-        summary = " · ".join(f"{STATUS_LABELS[s]} {n}" for s, n in counts.items() if n)
-        out = [f"写作决策树 · {total} 条（{summary}）", "案例出处与效果状态分别记录。", ""]
+        summary = " · ".join(f"{label} {status_counts[status]}"
+                             for status, label in STATUS_LABELS.items()
+                             if status_counts[status]) or "空库"
+        out = [f"写作决策树 · {total} 条（{summary}）", ""]
     shown = 0
     for dim in DIMENSIONS:
         rows = groups.get(dim, [])
@@ -387,29 +346,28 @@ def render_list(data, dimension):
             trig = d["trigger"]
             scenes = " / ".join(trig.get("scenes", [])[:4]) or "—"
             genres = "、".join(trig.get("genres", [])) or "—"
-            out.append(f"  {d['id']}  {d['title']}  [{status_label(d)}]")
+            status = d.get("status", "untested")
+            flag = f"  [{STATUS_LABELS.get(status, status)}]"
+            out.append(f"  {d['id']}  {d['title']}{flag}")
             out.append(f"        触发：{scenes}｜题材：{genres}")
         out.append("")
     if not shown:
         out.append("这个维度还没有决策。")
         return "\n".join(out)
     if not dimension and data.get("combos"):
-        out.append("成员状态可用的组合候选（仍需本场语境复核）：")
+        out.append("常用组合：")
         for c in data["combos"]:
-            if combo_is_eligible(data, c):
-                out.append(f"  - {c['name']}：" + " → ".join(c["order"]))
+            out.append(f"  - {c['name']}：" + " → ".join(c["order"]))
     return "\n".join(out)
 
 
 def to_json_match(r):
     d = dict(r["decision"])
-    return {
-        **d,
-        "status": status_of(d),
-        "status_label": status_label(d),
-        "effect_review_required": bool(d.get("effect_review_required")) or
-                                  (status_of(d) == "conditional" and not d.get("effect_evidence")),
-        **({"legacy_status": d["legacy_status"]} if d.get("legacy_status") else {}),
+    result = {
+        "id": d["id"],
+        "dimension": d["dimension"],
+        "title": d["title"],
+        "status": d.get("status", ""),
         "score": r["score"],
         "matched": {
             "scenes": r["scene_hits"],
@@ -417,8 +375,15 @@ def to_json_match(r):
             "position": r["position_hit"],
             "direct": bool(r["scene_hits"]),
         },
+        "trigger": d["trigger"],
+        "move": d["move"],
+        "why": d["why"],
+        "risk": d["risk"],
         "related": d.get("related", []),
     }
+    if isinstance(d.get("case"), dict) and d["case"]:
+        result["case"] = d["case"]
+    return result
 
 
 def main():
@@ -453,9 +418,7 @@ def main():
     if args.list:
         if args.json:
             decisions = [d for d in data["decisions"] if not dimension or d["dimension"] == dimension]
-            print(json.dumps({"count": len(decisions), "decisions": decisions,
-                              "status_labels": STATUS_LABELS,
-                              "note": "列表包含暂不采用及退役条目；案例出处不代表效果已验证。"},
+            print(json.dumps({"count": len(decisions), "decisions": decisions},
                              ensure_ascii=False, indent=2))
         else:
             print(render_list(data, dimension))
@@ -480,7 +443,6 @@ def main():
             "fallback": sum(1 for r in picked if not r["scene_hits"]),
             "matches": [to_json_match(r) for r in picked],
             "combo": combo,
-            "context_review": CONTEXT_REVIEW,
         }
         print(json.dumps(out, ensure_ascii=False, indent=2))
         return 0

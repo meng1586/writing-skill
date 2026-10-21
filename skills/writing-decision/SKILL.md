@@ -1,188 +1,71 @@
 ---
 name: writing-decision
-description: "写作决策树：把读到的技法变成写作时可查的 if-then。给题材、场景、章节位置，返回 3–5 条「什么情况用什么手法、为什么管用、会怎么崩」的决策，每条带书名章号案例。触发方式：/writing-decision、/决策、「写这章用什么手法」「这一场戏怎么写」「第一次杀人怎么写」「章末没钩子」「这段对话太干」「反派不够压迫」。"
-metadata: {"version":"0.1.0","local":true,"project":"写点小说","builds_on":["novel-study"]}
+version: 0.1.0-public
+description: "按题材、场景和章节位置查询写作决策摘要，返回可尝试动作、解释与风险。触发：/writing-decision、写作决策、这一场戏怎么写、写这章用什么手法。"
+metadata: {"project":"写作学习","builds_on":["novel-study"]}
 ---
 
-# writing-decision：写作决策树
+# writing-decision：写作决策摘要
 
-> **关键词检索候选，场景语境决定是否采用。**
-> novel-study 管「读到了什么」，这个技能管「写这一场该用哪一手、为什么、会怎么崩」。
+把候选技法整理成可查询的 if-then：触发条件 → 可尝试的动作 → 效果解释（推测）→ 风险与边界。
 
-写正文时最容易发生的事：笔记读过、规则记过，真到落笔还是凭手感。
-这个技能把「技法」拆成一条条**可查的决策**：
-
-```
-触发条件（题材 / 场景 / 章节位置）
-  → 候选动作（按本场取舍）
-  → 机理假设（不是效果承诺）
-  → 参考案例（书名 / 章号 / 原句）
-  → 风险 / 崩法（写坏了长什么样）
-```
-
-## 触发词
-
-- `/writing-decision`、`/决策`、`决策`、`查决策`、`写作决策树`、`这一场戏用什么手法`
-- 「写这章用什么手法」「这一场戏怎么写」「这个场景怎么处理」
-- 「主角第一次杀人怎么写」「开篇怎么留人」「章末没钩子」「对话太干」「反派不够压迫」
-- 写完一章觉得「顺但不对」，想找可对照的写法
+检索给的是候选，不是写作命令；没有匹配时允许返回空。采用前核对本场目标、人物状态、读者已知信息和叙述视角。
 
 ## 命令
 
+在本包根目录执行：
+
 ```bash
-SKILL_DIR="skills/writing-decision"
-
-# 这一场怎么写（最常用）
-python3 "$SKILL_DIR/scripts/decide.py" --tags 玄幻 --scene "主角第一次杀人"
-
-# 章节位置也一起限定
-python3 "$SKILL_DIR/scripts/decide.py" --tags 玄幻 --scene "主角第一次杀人" --position 章末
-
-# 只看某个维度
-python3 "$SKILL_DIR/scripts/decide.py" --list --dimension 对话
-python3 "$SKILL_DIR/scripts/decide.py" --scene "章末没钩子" --dimension 章末钩子
-
-# 全部决策 / 机器可读
-python3 "$SKILL_DIR/scripts/decide.py" --list
-python3 "$SKILL_DIR/scripts/decide.py" --tags 玄幻 --scene "反派登场" --json
-
-# 换数据文件（调试/实验用）
-python3 "$SKILL_DIR/scripts/decide.py" --list --data /path/to/decisions.json
+python3 skills/writing-decision/scripts/decide.py --scene 告别
+python3 skills/writing-decision/scripts/decide.py --tags 悬疑 --scene 反派登场 --position 开篇
+python3 skills/writing-decision/scripts/decide.py --list
+python3 skills/writing-decision/scripts/decide.py --list --dimension 对话
+python3 skills/writing-decision/scripts/decide.py --scene 告别 --json
 ```
 
-| 参数 | 作用 | 默认 |
-|---|---|---|
-| `--tags` | 题材，逗号/顿号分隔，如 `玄幻,悬疑` | 空（不限） |
-| `--scene` | 场景/情境，自由文本 | 空 |
-| `--position` | 章节位置：开篇 / 中段 / 章末 / 卷末 | 空（会从 `--scene` 推断） |
-| `--dimension` | 只看一个维度 | 空（全部） |
-| `--limit` | 返回条数 | 4（建议 3–5） |
-| `--list` | 列出全部决策 | — |
-| `--json` | 输出 JSON（可与 `--list` 组合） | — |
+| 参数 | 用途 |
+|---|---|
+| `--tags` | 题材，逗号、顿号等分隔 |
+| `--scene` | 当前场景的具体描述 |
+| `--position` | 开篇、中段、章末或卷末 |
+| `--dimension` | 只查某个维度 |
+| `--limit` | 限制返回数量，默认 4 |
+| `--list` | 列出已有决策 |
+| `--data` | 指定另一份决策 JSON |
+| `--json` | 输出结构化结果 |
 
-**只依赖标准库**，不用装包。数据在 `data/decisions.json`。
+匹配使用关键词、同义词和位置规则，不是语义模型。匹配分数表示检索相关性，不表示写法质量或已验证程度。
 
-## 输出与采用边界
+## 数据格式
 
-文本和JSON使用同一套筛选结果；事件关键词只召回候选，不能据此强制人物反应或落笔顺序。每次采用前都要复核：
+公开数据位于 `data/decisions.json`。保留原编号、触发条件、动作、解释、风险和关联；具体原文与书名章号保留在本地完整版。公开查询允许没有 `case`。
 
-1. 本场希望读者在乎什么？要确认、加深、维持或改变哪些判断？动作是否服务目标？不要求每场都发生改判。
-2. 人物此刻的目标、能力、关系和反应是否支持该写法？
-3. 当前视角允许谁知道、感到什么？表达是否一致？不能以“全知”笼统禁止身体感受。
-
-语境不符可全部不用。写后定位具体文本及其后果；没照候选动作或组合写，不构成失败。
-
-每条候选显示效果状态、匹配原因、触发语境、动作、机理假设、案例出处和风险。来源 `case` 只说明参照文本及引用类型，与写作效果状态分开。
-
-`--json` 保留 `query / count / direct / fallback / matches / combo`，另有必须执行的 `context_review`。`matches` 包含统一 `status`、`status_label`；兼容旧数据时保留 `legacy_status`。`combo` 仅在全部成员均为本轮可用候选时输出，否则为null，避免用组合说明带回已经排除、退役或未入选的动作。
-
-## 当前覆盖
-
-24 条，六维齐全：
-
-| 维度 | 条数 | 管什么 |
-|---|---|---|
-| 开篇 | 4 | 数字矛盾开局、第一段给怪事、第一次暴力给制度解释、命名藏规则 |
-| 节奏 | 5 | 规则一次讲透、读者先知道主角要赢、关卡换考法、主角假设错一次、主线晚点给 |
-| 人物 | 6 | 配角功能化、弱者伪装、反派礼貌、动作写群像、第一次杀人的身体反应、共同罪绑队 |
-| 对话 | 3 | 台词当证据、软话放硬场面、情绪越急语言越短 |
-| 章末钩子 | 2 | 三类钩子轮换、主角内部决断收章 |
-| 语言 | 4 | 身体动词、短长比喻分工、设定轻出口、删掉集体总结句 |
-
-另有 5 个组合：第一次杀人 / 开篇第一章 / 解谜规则局 / 章末疲软 / 反派登场。
-
-## 怎么加第 25 条
-
-数据文件：`data/decisions.json`。一条决策的字段：
+以下仅演示字段，不是实测写作经验：
 
 ```json
 {
-  "id": "D-025",
+  "id": "D-DEMO-001",
   "dimension": "对话",
-  "title": "一句话，动词开头，能执行",
+  "title": "在谈话目标发生变化时，检查回应是否随之调整",
   "trigger": {
-    "genres": ["玄幻", "仙侠"],
-    "exclude_genres": ["甜宠"],
-    "scenes": ["对话", "审问"],
-    "positions": ["任意"],
-    "when": "一句话说清什么情况下用"
+    "genres": ["通用"],
+    "exclude_genres": [],
+    "scenes": ["谈话目标变化"],
+    "positions": [],
+    "when": "人物在对话中改变了想争取的结果"
   },
-  "move": ["第一条动作", "第二条动作"],
-  "why": "为什么管用，讲机理，不写「很重要」",
-  "case": {
-    "book": "《书名》",
-    "chapters": "第3章",
-    "quote": "原文摘句，最多三句",
-    "quote_type": "原文",
-    "note": "这条案例好在哪"
-  },
-  "risk": ["写坏了长什么样", "什么时候不适用"],
-  "related": ["D-001"],
+  "move": ["比较目标变化前后的回应是否承担同一功能"],
+  "why": "推测：回应的变化可能帮助呈现人物此刻的取舍，仍需结合语境试用。",
+  "risk": ["人物也可能有意维持原来的说法，不能只因没有变化就判错"],
+  "related": [],
   "status": "untested"
 }
 ```
 
-硬规则：
+`scene_aliases` 保存概念与同义词，`combos` 保存可选组合顺序。主场景应放在 `trigger.scenes` 的首位；新增同义词后，检查一个具体查询是否命中。组合也只是候选顺序，不要求整组采用。
 
-1. **`scenes` 第一个是主场景**，匹配权重最高；换场景词时先想清楚这条最该在什么场景被翻出来。
-2. **场景词要在 `scene_aliases` 里有同义词**，否则用户说「开杀」「见血」匹配不到。新增概念时两处一起改。
-3. **`case` 必须具体到章**；`quote_type` 用 `原文` / `笔记转述` / `反例`，不许把转述标成原文。
-4. **`status`**：`untested`（待试验）、`tried`（已试用但效果未定）、`conditional`（仅在已记录的对照情境下有用）、`dropped`（暂不采用）、`no-diff`（对照看不出区别）、`retired`（退役并保留编号）。`dropped/retired` 不进入候选，列表中仍准确标示。案例可追溯不等于效果已验证。
-   - 旧 `derived` 和 `verified` 仅兼容读取为 `untested`：旧 `verified` 原意只是有出处，不能升级成效果证据。旧 `rejected` 兼容为 `dropped`。JSON保留 `legacy_status`，未知状态明确报错。
-   - 当前24条种子均为 `untested`；原23条 `conditional` 只是有案例记录，已降为待试验。全部动作、案例和来源保留，详见SOURCE迁移说明。
-5. 一条只讲一个动作，不打包三个技巧；`related` 指路，不合并。
-6. 加完至少跑一次 `--list` 和一个真实场景查询，再写进「已验证记录」。
+## 状态与反馈
 
-`scene_aliases` 的结构是「场景概念 → 同义词」，例如：
+随包摘要从 `untested`（待试验）起步。阅读出处或跨书重复不是对照试写，不据此标为有条件有效。
 
-```json
-"第一次杀人": ["首次杀人", "第一次动手", "第一次下杀手", "杀第一个人", "开杀", "第一次见血"]
-```
-
-## 接口自测记录（不代表写作效果验证）
-
-**2026-10-20 首轮自测**（本机，Python 3 标准库）：
-
-| 命令 | 结果 |
-|---|---|
-| `decide.py --tags 玄幻 --scene "主角第一次杀人"` | 4 条：D-014 → D-003 → D-015 → D-021，完整组合可作为候选，仍须复核本场语境 |
-| `decide.py --scene "这一章结尾没钩子，读者追读疲软"` | 3 条：D-019、D-020 优先，D-006 位置补位；位置从「结尾」推断为章末 |
-| `decide.py --tags 玄幻 --scene "反派第一次登场" --limit 3` | 3 条：D-012（反派礼貌）第一，D-004（命名藏规则）、D-006（主角先知道）补位 |
-| `decide.py --tags 玄幻` | 4 条跨维度：开篇 / 节奏 / 人物 / 对话，不再全是开篇 |
-| `decide.py --list` | 24 条，六维齐全，5 个组合 |
-| `decide.py --list --dimension 对话` | 3 条 |
-| `decide.py --tags 玄幻 --scene "主角第一次杀人" --json` | `query/count/matches/combo` 字段完整，`score` 可排序 |
-| `decide.py --tags 甜宠 --scene "男女主第一次接吻"` | 0 条，明确提示「不硬凑」，不返回通用噪音 |
-| `python3 -m py_compile scripts/decide.py` | 通过 |
-
-已知限制：
-
-- 场景匹配是**关键词 + 同义词**，不是语义模型。说法太偏（比如「捅破窗户纸」）会漏；可以往 `scene_aliases` 补词。
-- 只给题材、不给场景时，按维度轮转取样，不保证和当前章节位置相关；要精确就补 `--scene`。
-- 所有种子技法的效果目前均待试验。使用次数、作者自检或模型推断不能单独升为 `conditional`；后续依据写作闭环的具体对照记录保留条件和反馈来源。
-
-## 边界
-
-- **不代写正文**，只给判断和动作；句子还是作者写。
-- **不编案例**。没拆过的书不凭印象引用；转述标转述，反例标反例。
-- **不改 novel-study 的文件**。规则/笔记更新后，手动同步成决策（以后可以写 `sync.py`）。
-- **宁可返回空，不硬凑**。通用技巧套到不合适的场景，比没有建议更糟。
-
-## 与 novel-study 的分工
-
-| | novel-study | writing-decision |
-|---|---|---|
-| 回答 | 这本书怎么写的 | 我这一场该怎么写 |
-| 产物 | 笔记、规则、出处 | if-then 决策、查询 CLI |
-| 粒度 | 一本书 / 一条技法 | 一个场景 / 一个动作 |
-| 用法 | 读的时候沉淀 | 写的时候查 |
-
-## 目录
-
-```text
-skills/writing-decision/
-├── SKILL.md              # 本文件
-├── SOURCE.md             # 来源与自建理由
-├── data/decisions.json   # 决策库 + 场景同义词 + 组合
-└── scripts/decide.py     # 查询脚本（仅标准库）
-```
+使用记录、效果条件和调整方式见 [writing-loop](../writing-loop/SKILL.md)。已淘汰条目保留编号，不再推荐。对查询程序的验证与对写法效果的验证分别记录。

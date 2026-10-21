@@ -6,7 +6,7 @@
 
 用法：
   python3 scripts/apply.py --tags 玄幻,悬疑
-  python3 scripts/apply.py --book 命烛 --tags 玄幻
+  python3 scripts/apply.py --book 目标作品 --tags 玄幻
   python3 scripts/apply.py --tags 玄幻 --json
   python3 scripts/apply.py --list          # 只看规则库现状
 
@@ -29,62 +29,36 @@ OUT_DIR = os.path.join(PROJECT_DIR, "06-素材", "写作", "备忘")
 
 DIMENSIONS = ["开篇", "节奏", "人物", "对话", "章末钩子", "语言", "结构", "情绪"]
 
-SELF_CHECK = [
-    "本场想表达什么？现有文本真正缺的是哪一条依据或选择？",
-    "这一章的主角目标清楚吗？读者知道他想干嘛吗？",
-    "人物的选择、关系或读者等待的事情，发生了什么变化？",
-    "章末是否适合留下等待、回应旧问题，或让本场自然结束？",
-    "说明是否重复了已经清楚的信息？删掉后是否损失必要理解？",
-    "对话在推进什么？随便抽三句，能不能删？",
-    "对话是否符合人物，比喻是否准确，旁白是否在重复动作？",
-    "用的是什么「味道」？和文风卡对得上吗？",
-]
 
 
 def parse_rules(path):
-    """兼容旧 R-规则和新 C-候选卡；保留状态、出处和条件。"""
+    """把一个维度文件拆成规则列表。"""
     with open(path, encoding="utf-8") as f:
         text = f.read()
-    heading = r"^#{2,3}[ \t]+([RC]-\S+[ \t]+\S[^\n]*)$"
-    for lineno, line in enumerate(text.splitlines(), 1):
-        if re.match(r"^(?:#{1,6}[ \t]+)?[RC]-\S+", line) and not re.match(heading, line):
-            raise ValueError(f"{path}:{lineno}: 候选卡请使用 '## C-编号 标题' 或 '## R-维度-编号 标题'")
-    parts = re.split("(?m)" + heading, text)
+    parts = re.split(r"(?m)^#{2,3} (R-[^\n]+)$", text)
     rules = []
     for i in range(1, len(parts) - 1, 2):
         title = parts[i].strip()
         body = parts[i + 1].strip()
         tags = ""
-        m = re.search(r"- 适用题材：(.+)", body)
+        # 兼容加粗与「适用题材 / 适用场景」两种写法
+        m = re.search(r"-\s*\*{0,2}(?:适用题材|适用场景)\*{0,2}\s*[：:]\s*(.+)", body)
         if m:
             tags = m.group(1).strip()
-        status = "待试验"
-        m2 = re.search(r"- 状态：(.+)", body)
+        status = "待试验"  # 没有状态字段时不能默认「可用」
+        m2 = re.search(r"-\s*\*{0,2}(?:状态|效果状态|试用状态)\*{0,2}\s*[：:]\s*(.+)", body)
         if m2:
             status = m2.group(1).strip()
-        original_status = status
-        # 旧的「可用」只表示已经入库，没有独立效果验证。
-        if status in ("可用", "待验证", "candidate", "derived"):
-            status = "待试验"
-        def field(name, default=""):
-            found = re.search(r"(?m)^- " + re.escape(name) + r"：(.+)$", body)
-            return found.group(1).strip() if found else default
-        rules.append({"title": title, "body": body, "tags": tags, "status": status,
-                      "original_status": original_status,
-                      "kind": field("类型", "候选技法"),
-                      "source": field("出处", field("原文事实")),
-                      "conditions": field("适用条件", field("写作假设")),
-                      "source_path": os.path.relpath(path, PROJECT_DIR)})
-    if not rules and re.search(r"(?m)^(?:#{1,6}[ \t]+)?[RC]-\S+", text):
-        raise ValueError(f"{path}: 候选卡标题未解析，请使用 '## C-编号 标题' 或 '## R-维度-编号 标题'")
+        rules.append({"title": title, "body": body, "tags": tags, "status": status})
     return rules
 
 
 def load_all_rules():
     out = {}
-    for path in sorted(glob.glob(os.path.join(RULES_DIR, "*.md"))):
-        if os.path.basename(path) != "README.md":
-            out[os.path.splitext(os.path.basename(path))[0]] = parse_rules(path)
+    for dim in DIMENSIONS:
+        path = os.path.join(RULES_DIR, f"{dim}.md")
+        if os.path.isfile(path):
+            out[dim] = parse_rules(path)
     return out
 
 
@@ -94,7 +68,7 @@ def is_match(rule_tags, want):
         return True
     if not rule_tags:
         return False
-    if "通用" in rule_tags or "全题材" in rule_tags:
+    if "通用" in rule_tags:
         # 「通用，除 X」里若 want 命中排除项，则不匹配
         m = re.search(r"除(.+?)(?:外|$)", rule_tags)
         if m and any(w in m.group(1) for w in want):
@@ -103,10 +77,28 @@ def is_match(rule_tags, want):
     return any(w in rule_tags for w in want)
 
 
-def build(tags, book):
+def load_check(check_file):
+    """默认清单不存在 → 静默为空（公开版即此状态）。
+    但显式 --check-file 指向不存在的文件 → 报错，不能假装加载了。"""
+    explicit = bool(check_file)
+    path = os.path.abspath(check_file) if explicit else os.path.join(SKILL_DIR, "data", "自检清单.md")
+    if not os.path.isfile(path):
+        if explicit:
+            print(f"apply.py: --check-file 指定的文件不存在：{path}", file=sys.stderr)
+            raise SystemExit(2)
+        return []
+    items = []
+    for line in open(path, encoding="utf-8"):
+        m = re.match(r"^\s*[-*]\s*(?:\[[ xX]?\]\s*)?(.+?)\s*$", line)
+        if m and not line.strip().startswith("#"):
+            items.append(m.group(1))
+    return items
+
+
+def build(tags, book, no_self_check=False, check_file=""):
     all_rules = load_all_rules()
     picked = []
-    for dim in sorted(all_rules, key=lambda d: (DIMENSIONS.index(d) if d in DIMENSIONS else len(DIMENSIONS), d)):
+    for dim in DIMENSIONS:
         for r in all_rules.get(dim, []):
             if r["status"] in ("已淘汰", "暂不采用", "dropped", "rejected", "retired"):
                 continue
@@ -117,7 +109,8 @@ def build(tags, book):
         cards = sorted(glob.glob(os.path.join(STYLE_DIR, "*.md")))
         cards = [c for c in cards if os.path.basename(c) != "README.md"]
     return {"tags": tags, "book": book, "rules": picked, "cards": cards,
-            "check": SELF_CHECK, "generated": date.today().isoformat()}
+            "check": [] if no_self_check else load_check(check_file),
+            "generated": date.today().isoformat()}
 
 
 def render_md(data):
@@ -126,19 +119,14 @@ def render_md(data):
              f"- 目标作品：{data['book'] or '（未指定）'}",
              f"- 题材标签：{'、'.join(data['tags']) or '（未指定，全部规则）'}",
              ""]
-    lines.append("## 一、按本场条件选择的候选技法与案例")
-    lines.append("")
-    lines.append("> 题材匹配只用于查找，不代表本场适用或效果已验证。先判断表达问题，再选择一个有依据的尝试；没有缺口就不用卡。")
+    lines.append("## 一、本次写作要用的规则")
     if not data["rules"]:
         lines.append("")
-        lines.append("> 没有匹配的候选卡；可以依据当前场景直接写，不必为用卡补卡。")
+        lines.append("> 规则库没有匹配项。可以按当前作品目标继续写；想补规则，再去读一本书、拆一条。")
     for dim, r in data["rules"]:
         lines.append("")
         lines.append(f"### [{dim}] {r['title']}")
         lines.append("")
-        lines.append(f"- 调用状态：{r['status']}；类型：{r['kind']}")
-        if r["original_status"] != r["status"]:
-            lines.append(f"- 旧入库标签：{r['original_status']}（不表示效果已验证）")
         lines.append(r["body"])
     lines.append("")
     lines.append("## 二、文风卡")
@@ -147,11 +135,12 @@ def render_md(data):
             lines.append(f"- `{os.path.relpath(c, PROJECT_DIR)}`")
     else:
         lines.append("- （还没有文风卡，用 `wjs-distilling-style` 蒸一张）")
-    lines.append("")
-    lines.append("## 三、写作前自检")
-    for q in data["check"]:
-        lines.append(f"- [ ] {q}")
-    lines.append("")
+    if data["check"]:
+        lines.append("")
+        lines.append("## 三、写作前自检")
+        for q in data["check"]:
+            lines.append(f"- [ ] {q}")
+        lines.append("")
     return "\n".join(lines)
 
 
@@ -162,33 +151,32 @@ def main():
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--list", action="store_true", help="只看规则库现状")
     ap.add_argument("--no-write", action="store_true", help="只打印不落盘")
+    ap.add_argument("--rules", default="", help="规则目录（默认 skills/novel-study/data/rules）")
+    ap.add_argument("--check-file", default="", help="自检清单文件（默认 data/自检清单.md；显式指定但不存在会报错）")
+    ap.add_argument("--no-self-check", action="store_true",
+                    help="不输出自检清单（清单来自 data/自检清单.md，默认没有就不输出）")
     args = ap.parse_args()
 
+    global RULES_DIR
+    if args.rules:
+        RULES_DIR = os.path.abspath(args.rules)
     tags = [t.strip() for t in re.split(r"[,，、\s]+", args.tags) if t.strip()]
 
     if args.list:
-        try:
-            all_rules = load_all_rules()
-        except ValueError as exc:
-            print(str(exc), file=sys.stderr)
-            return 2
-        for dim in all_rules:
+        all_rules = load_all_rules()
+        for dim in DIMENSIONS:
             n = len(all_rules.get(dim, []))
             print(f"{dim}: {n} 条")
         return 0
 
-    try:
-        data = build(tags, args.book)
-    except ValueError as exc:
-        print(str(exc), file=sys.stderr)
-        return 2
+    data = build(tags, args.book, getattr(args, "no_self_check", False), getattr(args, "check_file", ""))
 
     if args.json:
         out = {
             "generated": data["generated"],
             "book": data["book"],
             "tags": data["tags"],
-            "rules": [{"dimension": d, **r}
+            "rules": [{"dimension": d, "title": r["title"], "tags": r["tags"]}
                       for d, r in data["rules"]],
             "cards": [os.path.relpath(c, PROJECT_DIR) for c in data["cards"]],
             "check": data["check"],

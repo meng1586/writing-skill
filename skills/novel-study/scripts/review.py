@@ -7,9 +7,9 @@
   list   列出已有总评
 
 用法：
-  python3 scripts/review.py new --key fanqie-7143038691944959011
-  python3 scripts/review.py finish --key fanqie-7143038691944959011 \\
-      --reason 读完 --rating 5 --verdict keep --chapters 1496
+  python3 scripts/review.py new --key fanqie-BOOK_ID
+  python3 scripts/review.py finish --key fanqie-BOOK_ID \\
+      --reason 读完 --rating 5 --verdict keep --chapters 10
   python3 scripts/review.py list
 
 只依赖标准库。
@@ -82,7 +82,7 @@ def cmd_new(args):
     with open(path, "w", encoding="utf-8") as f:
         f.write(tpl)
     print(f"已生成总评骨架：{path}")
-    print("下一步：记录有文本依据的优点与问题；未发现或未覆盖可如实写，不为填满凑数。")
+    print("下一步：把 2/3 节（好在哪、烂在哪）填满，烂在哪不能空。")
     return 0
 
 

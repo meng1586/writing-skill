@@ -6,7 +6,7 @@
   python3 scripts/plan.py --json     # 给 agent 的结构化清单
   python3 scripts/plan.py --sync     # 把 data/notes、data/rules 同步到 06-素材/
 
-契约见同目录 CONTRACT.md。只依赖标准库。
+接口约定见 ../CONTRACT.md。只依赖标准库。
 """
 import argparse
 import json
@@ -25,7 +25,7 @@ CONFIG = os.path.join(SKILL_DIR, "config.json")
 NOTES_DIR = os.path.join(DATA_DIR, "notes")
 RULES_DIR = os.path.join(DATA_DIR, "rules")
 
-RULE_DIMENSIONS = ["开篇", "节奏", "人物", "对话", "章末钩子", "语言", "结构", "情绪"]
+RULE_DIMENSIONS = ["开篇", "节奏", "人物", "对话", "章末钩子", "语言", "结构"]
 DEFAULT_CONFIG = {"daily_chapters": 3, "time_budget_min": 40, "note_sync_dirs": {
     "notes": "06-素材/读/笔记", "rules": "06-素材/读/规则"}}
 RULE_GAP_THRESHOLD = 3  # 少于 3 条规则的维度算缺口
@@ -66,11 +66,9 @@ def downloaded_chapters(book):
     return nums
 
 
-def build_plan(book_key=None, chapters=None):
+def build_plan():
     cfg = {**DEFAULT_CONFIG, **load_json(CONFIG, {})}
-    daily = int(chapters if chapters is not None else cfg.get("daily_chapters", 3) or 3)
-    if not 1 <= daily <= int(cfg.get("max_chapters_per_run", 20)):
-        raise ValueError("本次章数必须在 1 与 max_chapters_per_run 之间")
+    daily = int(cfg.get("daily_chapters", 3) or 3)
     shelf = load_shelf()
     books = shelf.get("books", [])
     today = date.today().isoformat()
@@ -84,33 +82,17 @@ def build_plan(book_key=None, chapters=None):
         "notes_todo": [],
         "rules_gap": {},
         "shelf_summary": {},
-        "selected_book": None,
     }
 
-    if book_key:
-        selected = next((b for b in books if b.get("key") == book_key), None)
-        if selected is None:
-            raise ValueError(f"书架里没有 {book_key}；先用 shelf.py add 登记")
-        if selected.get("verdict") == "drop" or selected.get("status") == "dropped":
-            raise ValueError(f"{book_key} 已停止阅读；请先确认是否继续")
-        plan["selected_book"] = {k: selected.get(k) for k in (
-            "key", "name", "source", "book_id", "status", "chapters_done", "chapter_total")}
     if not books:
         plan["shelf_summary"] = {"total": 0}
         return plan
 
     # 今日书目：reading 优先，按 last_studied 最早 / 进度比最低
     # 止损的书（verdict=drop）不再推
-    def incomplete(book):
-        total = int(book.get("chapter_total", 0) or 0)
-        return not total or int(book.get("chapters_done", 0) or 0) < total
-    eligible = [b for b in books if b.get("verdict") != "drop" and incomplete(b)]
-    if book_key:
-        reading = [selected] if selected.get("status") in ("reading", "unread") and incomplete(selected) else []
-    else:
-        reading = [b for b in eligible if b.get("status") == "reading"]
-        if not reading:
-            reading = [b for b in eligible if b.get("status") == "unread"]
+    reading = [b for b in books if b.get("status") == "reading" and b.get("verdict") != "drop"]
+    if not reading:
+        reading = [b for b in books if b.get("status") == "unread" and b.get("verdict") != "drop"]
     reading.sort(key=lambda b: (
         b.get("last_studied") or "0000-00-00",
         (b.get("chapters_done", 0) or 0) /
@@ -127,12 +109,7 @@ def build_plan(book_key=None, chapters=None):
         need = [n for n in range(start, end + 1) if n not in have]
         plan["today"].append({
             "key": book.get("key"),
-            "book_key": book.get("key"),
-            "source": book.get("source"),
-            "book_id": book.get("book_id"),
             "name": book.get("name"),
-            "last_read_chapter": done,
-            "chapter_total": total,
             "from": start,
             "to": end,
             "already_downloaded": [n for n in range(start, end + 1) if n in have],
@@ -146,8 +123,7 @@ def build_plan(book_key=None, chapters=None):
             continue
         book_dir = os.path.join(NOTES_DIR, book.get("name") or "")
         has_note = os.path.isdir(book_dir) and any(
-            f.endswith(".md") and f not in ("总评.md", "前情提要.md", "README.md")
-            for f in os.listdir(book_dir))
+            f.endswith(".md") and f != "总评.md" for f in os.listdir(book_dir))
         if not has_note:
             plan["notes_todo"].append(book.get("name"))
 
@@ -159,7 +135,7 @@ def build_plan(book_key=None, chapters=None):
             with open(path, encoding="utf-8") as f:
                 text = f.read()
             # 每条规则以 "## " 或 "### " 或 "- **规则" 开头
-            count = len(re.findall(r"^#{2,3}[ \t]+(?:R|C)-", text, re.M))
+            count = len(re.findall(r"^(?:##|###)\s", text, re.M))
         if count < RULE_GAP_THRESHOLD:
             plan["rules_gap"][dim] = count
 
@@ -181,7 +157,6 @@ def sync_outputs():
         (RULES_DIR, os.path.join(PROJECT_DIR, dirs.get("rules", "06-素材/读/规则"))),
     ]
     synced = []
-    pending = []
     for src, dst in pairs:
         if not os.path.isdir(src):
             continue
@@ -192,20 +167,11 @@ def sync_outputs():
                     continue
                 s = os.path.join(root, name)
                 d = os.path.join(dst, rel, name) if rel != "." else os.path.join(dst, name)
-                # 已完成的正式笔记不可被同步重写；前情提要是持续更新的当前摘要。
-                if src == NOTES_DIR and name != "前情提要.md" and os.path.isfile(d):
-                    with open(s, "rb") as source_file, open(d, "rb") as target_file:
-                        if source_file.read() != target_file.read():
-                            raise ValueError(f"正式笔记已存在且内容不同，未覆盖：{d}")
-                    continue
+                os.makedirs(os.path.dirname(d), exist_ok=True)
                 if not os.path.isfile(d) or os.path.getmtime(s) > os.path.getmtime(d) or \
                         os.path.getsize(s) != os.path.getsize(d):
-                    pending.append((s, d))
-    # 先完成冲突检查，再进行复制，避免失败时只发布半套材料。
-    for s, d in pending:
-        os.makedirs(os.path.dirname(d), exist_ok=True)
-        shutil.copy2(s, d)
-        synced.append(os.path.relpath(d, PROJECT_DIR))
+                    shutil.copy2(s, d)
+                    synced.append(os.path.relpath(d, PROJECT_DIR))
     return synced
 
 
@@ -255,16 +221,10 @@ def main():
     ap = argparse.ArgumentParser(description="novel-study 今日学习计划")
     ap.add_argument("--json", action="store_true", help="输出 JSON")
     ap.add_argument("--sync", action="store_true", help="同步笔记/规则到 06-素材/")
-    ap.add_argument("--book-key", help="明确选择一本已登记书；单元阅读时必传，避免沿用其他书的进度")
-    ap.add_argument("--chapters", type=int, help="本单元章数；默认使用 config.json 的 daily_chapters")
     args = ap.parse_args()
 
     if args.sync:
-        try:
-            synced = sync_outputs()
-        except ValueError as exc:
-            print(str(exc), file=sys.stderr)
-            return 2
+        synced = sync_outputs()
         if args.json:
             print(json.dumps({"synced": synced, "count": len(synced)},
                              ensure_ascii=False, indent=2))
@@ -277,10 +237,7 @@ def main():
                 print("没有需要同步的文件。")
         return 0
 
-    try:
-        plan = build_plan(args.book_key, args.chapters)
-    except ValueError as exc:
-        ap.error(str(exc))
+    plan = build_plan()
     if args.json:
         print(json.dumps(plan, ensure_ascii=False, indent=2))
     else:

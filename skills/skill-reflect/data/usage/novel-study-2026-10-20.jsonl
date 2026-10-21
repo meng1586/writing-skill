@@ -1,3 +1,0 @@
-{"ts":"2026-10-20T21:42:10+02:00","skill":"novel-study","stage":"读正文","issue":"慢","suggestion":"每 20–30 章合并成一个单元，减少每单元读手册/读前情的固定开销","impact":"high","files":["skills/novel-study/references/read-cycle.md","skills/novel-study/data/state/reading-progress.json"]}
-{"ts":"2026-10-20T21:58:33+02:00","skill":"novel-study","stage":"笔记","issue":"重复太多","suggestion":"0 节只在第一篇写，后续写「沿用全书判断」；2.1–2.6 没变化就写「无变化」","impact":"high","files":["skills/novel-study/data/notes/*.md","skills/novel-study/references/note-template.md"]}
-{"ts":"2026-10-20T22:05:47+02:00","skill":"novel-study","stage":"笔记","issue":"token 太贵","suggestion":"笔记按 A/B/C 分级控篇幅（≤150/80/40 行），摘引合计 ≤5 处","impact":"high","files":["skills/novel-study/references/note-template.md","skills/novel-study/references/优化计划.md"]}

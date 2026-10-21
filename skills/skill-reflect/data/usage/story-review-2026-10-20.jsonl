@@ -1,1 +1,0 @@
-{"ts":"2026-10-20T20:31:05+02:00","skill":"story-review","stage":"审查","issue":"输出太长","suggestion":"先给 3 条最致命的结论，再附逐条明细，主报告不超过一屏","impact":"medium","files":["skills/story-review/SKILL.md"]}
