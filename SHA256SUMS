@@ -1,5 +1,5 @@
-1e582f8a72b656c191dab0a527cb1d633dc5c7e734cbd6dd1e75384892e69df7  ./MANIFEST.md
-856944043d968d4e04954a80b766762b6cca57427a2436c08737840ae6ddc079  ./README.md
+345d3ca4f6ee97eb235fe18eed8304b59e683ec874f0d4edbf5a48ed8b6c9a94  ./MANIFEST.md
+615dea9558cd1c633d515a047d9dbe1310e10826324aa7cd64731035e85fbe52  ./README.md
 507cfe233176b02329d4d02ed73ca498bf84e59d65eccfe6c40cd15feb882eed  ./skills/write/SKILL.md
 1293ddb78319de4b09aa3315a1ecd6c3969e954e02e3bb22940eac048e13bab4  ./skills/write/THIRD_PARTY_NOTICES.md
 5c8b1ecc4b2e9f3e61abdd6fccf750c622b01af8788531756d303ca508d5e3b9  ./skills/write/agents/openai.yaml
@@ -29,11 +29,12 @@ ff212418b771fa3a12b7ccb7327a7d97c88cc4a5b94dcedf633f14a81b964d67  ./skills/write
 002d479cf5df22b1df9cfe4f5cebe4d77f0efd0b40df8174cb9624ca817406be  ./skills/write/references/drafting.md
 95cbc476cc56b979927aa242715971b49a75167a30224e423f9ea12f5f73469f  ./skills/write/references/editorial.md
 cf475718b37ec2e1a84e4dfc8363d1f563837c29924ae221781a1a31f9438002  ./skills/write/references/learning.md
-9af22738838d21e938a8edb5b8e2b7e7c25b6e6b61c85deefb10baaac2acea90  ./skills/write/references/long.md
+b1ecca1d83e4c316b99c4e7da66a694f14e2efc40174c7f6cffa01d6c7b20f43  ./skills/write/references/long.md
 55ec6110bb439c70f807b53651447c00caac1d085bb2c0c69f722d0f79f76fcb  ./skills/write/references/methods.md
 ebf236ee943675abe69f18c4fd817634db56189403ca58ebe2d0cb34f7d393e8  ./skills/write/references/resources.md
-e216b685c3bd3f9eb5022feb7aeb4806235f305666f9f39ae2ada67094133dfa  ./skills/write/references/short.md
+a786cf2cf63e0ad34764aba81ed9bcddacd23268ebbeac75169766bbfb54478f  ./skills/write/references/short.md
 284f6c0b5f19bef03a94597fad329c71a71a07057f14a18e8dd2418b582b55e7  ./skills/write/references/sources.md
+d1f6780782f890e18d41ab2acdf0eef2606fa9ed76376f9dc2e8a6637c66acc7  ./skills/write/references/structures-summary.md
 56bfcda4e79072e80744b30df035ad10210972e9d879888bd0403c1c931c3351  ./skills/write/scripts/check-ai-patterns.js
 6c065c563e82b4b2ce4d66ad3dc1f57f0b742de41a8a65c2ae677ebeff5b7dea  ./skills/write/scripts/check-degeneration.js
 2fe3cbe99f390ee5260ff285755a8edd710c1d5fd24d281c89e41b58f8763b13  ./skills/write/scripts/decide.py

@@ -38,6 +38,7 @@
 | `skills/write/references/resources.md` | 方法 | 通用方法/工具/说明，不含正文与私有资料 |
 | `skills/write/references/short.md` | 方法 | 通用方法/工具/说明，不含正文与私有资料 |
 | `skills/write/references/sources.md` | 方法 | 通用方法/工具/说明，不含正文与私有资料 |
+| `skills/write/references/structures-summary.md` | 方法 | 通用方法/工具/说明，不含正文与私有资料 |
 | `skills/write/scripts/check-ai-patterns.js` | 工具 | 通用方法/工具/说明，不含正文与私有资料 |
 | `skills/write/scripts/check-degeneration.js` | 工具 | 通用方法/工具/说明，不含正文与私有资料 |
 | `skills/write/scripts/decide.py` | 工具 | 通用方法/工具/说明，不含正文与私有资料 |
