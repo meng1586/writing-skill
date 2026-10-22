@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write · 小说创作"
+  short_description: "从一个念头到完整小说，内置长短篇大纲、连续起草、文学审读与定向修改"
+  default_prompt: "使用 $write，沿用我的构思和已定内容，按长短篇选择内部流程，完成本次要求的创作阶段。"
