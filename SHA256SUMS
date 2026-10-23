@@ -1,6 +1,6 @@
 345d3ca4f6ee97eb235fe18eed8304b59e683ec874f0d4edbf5a48ed8b6c9a94  ./MANIFEST.md
 615dea9558cd1c633d515a047d9dbe1310e10826324aa7cd64731035e85fbe52  ./README.md
-507cfe233176b02329d4d02ed73ca498bf84e59d65eccfe6c40cd15feb882eed  ./skills/write/SKILL.md
+c374d008902a152ce78236837f7904c6b0ea3c4acc26e92ab02e414023586e41  ./skills/write/SKILL.md
 1293ddb78319de4b09aa3315a1ecd6c3969e954e02e3bb22940eac048e13bab4  ./skills/write/THIRD_PARTY_NOTICES.md
 5c8b1ecc4b2e9f3e61abdd6fccf750c622b01af8788531756d303ca508d5e3b9  ./skills/write/agents/openai.yaml
 3719229b9b98bde1bfa557480bfc8a105ca44693b0a0be5e2d099e202ca58c63  ./skills/write/data/decisions.json
@@ -27,7 +27,7 @@ ce490ec641a8d9d5fb4a2acc9e4deb8f7bc4fb130cb91cef0c89ca7a2dfb2c48  ./skills/write
 ff212418b771fa3a12b7ccb7327a7d97c88cc4a5b94dcedf633f14a81b964d67  ./skills/write/data/rules/节奏.md
 621e6e7c747658bbba9a79401c735b163cba4b6d3a35706ce1ed8373eb9f77e9  ./skills/write/data/rules/语言.md
 002d479cf5df22b1df9cfe4f5cebe4d77f0efd0b40df8174cb9624ca817406be  ./skills/write/references/drafting.md
-046551bd288f33dc6ffefa97fd249464c3948e0c60a1b335738c5037d71b38cb  ./skills/write/references/editorial.md
+6e2beb883fa9956bdfe8cdb4ac088dd858a175b556c0fa144b9617cfd28504c6  ./skills/write/references/editorial.md
 cf475718b37ec2e1a84e4dfc8363d1f563837c29924ae221781a1a31f9438002  ./skills/write/references/learning.md
 b1ecca1d83e4c316b99c4e7da66a694f14e2efc40174c7f6cffa01d6c7b20f43  ./skills/write/references/long.md
 55ec6110bb439c70f807b53651447c00caac1d085bb2c0c69f722d0f79f76fcb  ./skills/write/references/methods.md
