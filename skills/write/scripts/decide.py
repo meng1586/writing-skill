@@ -30,6 +30,12 @@ POSITION_WORDS = [
 ]
 
 
+def dimensions(data):
+    """按当前数据返回维度，沿用已知展示顺序，新维度追加。"""
+    present = list(dict.fromkeys(d["dimension"] for d in data["decisions"]))
+    return [d for d in DIMENSIONS if d in present] + [d for d in present if d not in DIMENSIONS]
+
+
 def die(msg):
     print(f"decide.py: {msg}", file=sys.stderr)
     sys.exit(2)
@@ -163,7 +169,7 @@ def select(data, tags, scene, position, dimension, limit):
             by_dim.setdefault(r["decision"]["dimension"], []).append(r)
         picked, round_i = [], 0
         while len(picked) < limit and any(len(v) > round_i for v in by_dim.values()):
-            for dim in DIMENSIONS:
+            for dim in dimensions(data):
                 bucket = by_dim.get(dim, [])
                 if len(bucket) > round_i:
                     picked.append(bucket[round_i])
@@ -318,7 +324,7 @@ def render_text(data, query, picked, n_direct, n_fallback):
 
 
 def render_list(data, dimension):
-    groups = {d: [] for d in DIMENSIONS}
+    groups = {d: [] for d in dimensions(data)}
     for d in data["decisions"]:
         groups.setdefault(d["dimension"], []).append(d)
     total = sum(len(v) for v in groups.values())
@@ -334,7 +340,7 @@ def render_list(data, dimension):
                              if status_counts[status]) or "空库"
         out = [f"写作决策树 · {total} 条（{summary}）", ""]
     shown = 0
-    for dim in DIMENSIONS:
+    for dim in dimensions(data):
         rows = groups.get(dim, [])
         if dimension and dim != dimension:
             continue
@@ -399,7 +405,7 @@ def main():
     ap.add_argument("--tags", default="", help="题材，逗号分隔，如 玄幻,悬疑")
     ap.add_argument("--scene", default="", help="场景/情境，自由文本，如「主角第一次杀人」")
     ap.add_argument("--position", default="", help="章节位置：开篇/中段/章末/卷末（也可从 --scene 推断）")
-    ap.add_argument("--dimension", default="", help="只看某个维度：开篇/节奏/人物/对话/章末钩子/语言")
+    ap.add_argument("--dimension", default="", help="只看某个维度（以当前决策数据为准）")
     ap.add_argument("--limit", type=int, default=4, help="返回条数，默认 4（可按需要调整）")
     ap.add_argument("--list", action="store_true", help="列出全部决策")
     ap.add_argument("--json", action="store_true", help="输出 JSON")
@@ -412,8 +418,8 @@ def main():
     position = args.position.strip() or infer_position(scene)
     dimension = args.dimension.strip()
 
-    if dimension and dimension not in DIMENSIONS:
-        die(f"未知维度「{dimension}」，可选：{'、'.join(DIMENSIONS)}")
+    if dimension and dimension not in dimensions(data):
+        die(f"未知维度「{dimension}」，可选：{'、'.join(dimensions(data))}")
 
     if args.list:
         if args.json:

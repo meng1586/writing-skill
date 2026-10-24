@@ -44,3 +44,4 @@
 | `skills/write/scripts/decide.py` | 工具 | 通用方法/工具/说明，不含正文与私有资料 |
 | `skills/write/scripts/scene.py` | 工具 | 通用方法/工具/说明，不含正文与私有资料 |
 | `skills/write/scripts/style-whitelist.js` | 工具 | 通用方法/工具/说明，不含正文与私有资料 |
+| `examples/AGENTS.deepseek-harness.md` | 说明 | 可复制的通用 Harness 执行约定，不含本机项目与私有资料 |
