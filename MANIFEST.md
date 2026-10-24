@@ -35,6 +35,7 @@
 | `skills/write/references/learning.md` | 方法 | 通用方法/工具/说明，不含正文与私有资料 |
 | `skills/write/references/long.md` | 方法 | 通用方法/工具/说明，不含正文与私有资料 |
 | `skills/write/references/methods.md` | 方法 | 通用方法/工具/说明，不含正文与私有资料 |
+| `skills/write/references/platform-adapt.md` | 方法 | 通用方法/工具/说明，不含正文与私有资料 |
 | `skills/write/references/resources.md` | 方法 | 通用方法/工具/说明，不含正文与私有资料 |
 | `skills/write/references/short.md` | 方法 | 通用方法/工具/说明，不含正文与私有资料 |
 | `skills/write/references/sources.md` | 方法 | 通用方法/工具/说明，不含正文与私有资料 |

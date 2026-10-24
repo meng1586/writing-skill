@@ -1,7 +1,7 @@
-49a08e43a4b1cb8e349ed9a64e49961d2b309b41eff554545aa51227b2f4cc5c  ./MANIFEST.md
-9c53567ccace066c08af11692448ec19405ae431c7a846d6b1ff8ac0e8ee4320  ./README.md
+64dea6a2ca80fec5dfd978a5e63c2e6cd27e731358da2f518b1635d5c94f0879  ./MANIFEST.md
+a441b2a26f7b810cdc07a64ce63432343bebbc8065375507111ea5e3a8d70823  ./README.md
 1931434aa2085dbacfaccc652646ddcbb43ea56ac9f69cc253155cfab1a92350  ./examples/AGENTS.deepseek-harness.md
-c374d008902a152ce78236837f7904c6b0ea3c4acc26e92ab02e414023586e41  ./skills/write/SKILL.md
+54182878828f86f9defb4c92fa9fa590eacc4c621d8b47b4ed431acd017827cb  ./skills/write/SKILL.md
 1293ddb78319de4b09aa3315a1ecd6c3969e954e02e3bb22940eac048e13bab4  ./skills/write/THIRD_PARTY_NOTICES.md
 5c8b1ecc4b2e9f3e61abdd6fccf750c622b01af8788531756d303ca508d5e3b9  ./skills/write/agents/openai.yaml
 4c8828abf8da69245e786e47dd8628f0a661cefd24e82c903ee554ed946bd623  ./skills/write/data/decisions.json
@@ -32,6 +32,7 @@ ff212418b771fa3a12b7ccb7327a7d97c88cc4a5b94dcedf633f14a81b964d67  ./skills/write
 cf475718b37ec2e1a84e4dfc8363d1f563837c29924ae221781a1a31f9438002  ./skills/write/references/learning.md
 b1ecca1d83e4c316b99c4e7da66a694f14e2efc40174c7f6cffa01d6c7b20f43  ./skills/write/references/long.md
 74fd1cd9c2c03a93e43522a3b9383d29181825ac346c878d199d50516b382e4c  ./skills/write/references/methods.md
+1f91a21fd43df3feb7d742ab10bdf4f6c49b24f9d34a7e8bcd8b7bdeebe291da  ./skills/write/references/platform-adapt.md
 ebf236ee943675abe69f18c4fd817634db56189403ca58ebe2d0cb34f7d393e8  ./skills/write/references/resources.md
 a786cf2cf63e0ad34764aba81ed9bcddacd23268ebbeac75169766bbfb54478f  ./skills/write/references/short.md
 284f6c0b5f19bef03a94597fad329c71a71a07057f14a18e8dd2418b582b55e7  ./skills/write/references/sources.md
