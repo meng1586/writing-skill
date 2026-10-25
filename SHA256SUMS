@@ -1,7 +1,7 @@
 64dea6a2ca80fec5dfd978a5e63c2e6cd27e731358da2f518b1635d5c94f0879  ./MANIFEST.md
 e04d872e882131bf5a5597837e9311f430a668f9e22aede0ac648da249bbed45  ./README.md
 1931434aa2085dbacfaccc652646ddcbb43ea56ac9f69cc253155cfab1a92350  ./examples/AGENTS.deepseek-harness.md
-98bb00d5f821fe90549454901966baef8770b1c3cf3d61760111362c512de2d4  ./skills/write/SKILL.md
+aefb596e9720f8218ae7adc469ce21db97030638cf2a697f828faac496145c34  ./skills/write/SKILL.md
 1293ddb78319de4b09aa3315a1ecd6c3969e954e02e3bb22940eac048e13bab4  ./skills/write/THIRD_PARTY_NOTICES.md
 5c8b1ecc4b2e9f3e61abdd6fccf750c622b01af8788531756d303ca508d5e3b9  ./skills/write/agents/openai.yaml
 4c8828abf8da69245e786e47dd8628f0a661cefd24e82c903ee554ed946bd623  ./skills/write/data/decisions.json
@@ -27,7 +27,7 @@ ce490ec641a8d9d5fb4a2acc9e4deb8f7bc4fb130cb91cef0c89ca7a2dfb2c48  ./skills/write
 59a4d360d6a0b6ff72b014b253491d68c6a22e7610721cbdb7743570f36aeae2  ./skills/write/data/rules/结构.md
 ff212418b771fa3a12b7ccb7327a7d97c88cc4a5b94dcedf633f14a81b964d67  ./skills/write/data/rules/节奏.md
 621e6e7c747658bbba9a79401c735b163cba4b6d3a35706ce1ed8373eb9f77e9  ./skills/write/data/rules/语言.md
-3be4ebd4895765b5eb5b2ccfe8deb6945086c549d0d4429f5f9c696c41e6e555  ./skills/write/references/drafting.md
+99c37851373ac77c301006238c971c12c333aeed096feea926d8a78d37522542  ./skills/write/references/drafting.md
 6e2beb883fa9956bdfe8cdb4ac088dd858a175b556c0fa144b9617cfd28504c6  ./skills/write/references/editorial.md
 cf475718b37ec2e1a84e4dfc8363d1f563837c29924ae221781a1a31f9438002  ./skills/write/references/learning.md
 b1ecca1d83e4c316b99c4e7da66a694f14e2efc40174c7f6cffa01d6c7b20f43  ./skills/write/references/long.md
@@ -35,7 +35,7 @@ b1ecca1d83e4c316b99c4e7da66a694f14e2efc40174c7f6cffa01d6c7b20f43  ./skills/write
 1f91a21fd43df3feb7d742ab10bdf4f6c49b24f9d34a7e8bcd8b7bdeebe291da  ./skills/write/references/platform-adapt.md
 ebf236ee943675abe69f18c4fd817634db56189403ca58ebe2d0cb34f7d393e8  ./skills/write/references/resources.md
 a786cf2cf63e0ad34764aba81ed9bcddacd23268ebbeac75169766bbfb54478f  ./skills/write/references/short.md
-284f6c0b5f19bef03a94597fad329c71a71a07057f14a18e8dd2418b582b55e7  ./skills/write/references/sources.md
+8b212ea4ed7ce3513e10de340c311850a13e099c6097f7b1ecd4600127a256bd  ./skills/write/references/sources.md
 d1f6780782f890e18d41ab2acdf0eef2606fa9ed76376f9dc2e8a6637c66acc7  ./skills/write/references/structures-summary.md
 56bfcda4e79072e80744b30df035ad10210972e9d879888bd0403c1c931c3351  ./skills/write/scripts/check-ai-patterns.js
 6c065c563e82b4b2ce4d66ad3dc1f57f0b742de41a8a65c2ae677ebeff5b7dea  ./skills/write/scripts/check-degeneration.js

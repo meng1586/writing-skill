@@ -12,6 +12,11 @@
 
 资料价值按与本次问题是否相符判断，不按安装量宣称文学效果。
 
+## 外部人物卡方法
+
+- [Liya 酒馆写卡方法（cdee8d0）](https://github.com/feverZHONG/liya-sillytavern-cards/blob/cdee8d0ad46478e1d9564d86c5bc8327b5783e56/references/writing-method.md)：借鉴具体情境中的表达证据、动作与眼前事件相连及避免固定出口；不采用卡格式工程、概率或动作配额，以及模板对心理描写的限制。
+- [character-card-author（dab0da4）](https://github.com/foreverse-app/character-card-skills/blob/dab0da437810b2ea4b5eec414c10c8fa35e779f8/skills/character-card-author/SKILL.md)：借鉴认知局限、情绪延续、独立生活与关系差异；不采用字数或碎句配额、固定反弹节奏、恋爱标签或检测分数。矛盾动机、具体心理、情境推演与表达构思是本包的小说适配；设计共识不构成文学效果验证，外部方法不作为运行依赖。
+
 ## 本地现有方法
 
 只读参考 DS 工作区已有 `story-short-write/references/` 的 `workflow-design.md`、`story-logic.md`、`short-reversal.md`、`narrative-focus.md`，吸收欲望与限制、因果、信息公平、自然场景和必要的慢处。
